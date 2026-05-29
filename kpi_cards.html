@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Карта KPI-карточек - юнит-аналитика</title>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --surface: #ffffff;
+      --surface-soft: #f7f8fa;
+      --border: #e8ebef;
+      --text: #111827;
+      --muted: #667085;
+      --muted-2: #98a2b3;
+      --accent: #1f6feb;
+      --accent-soft: #eef5ff;
+      --green: #12b76a;
+      --green-soft: #ecfdf3;
+      --amber: #f79009;
+      --amber-soft: #fffaeb;
+      --red: #f04438;
+      --red-soft: #fff1f1;
+      --purple: #7a5af8;
+      --purple-soft: #f4f3ff;
+      --shadow: 0 8px 28px rgba(16, 24, 40, 0.06);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      line-height: 1.5;
+    }
+
+    .page {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 28px 28px 60px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 24px;
+      padding: 28px;
+      border: 1px solid var(--border);
+      border-radius: 26px;
+      box-shadow: var(--shadow);
+      background: linear-gradient(180deg, #ffffff 0%, #fbfcff 100%);
+      margin-bottom: 22px;
+    }
+
+    h1, h2, h3, p { margin-top: 0; }
+
+    h1 {
+      font-size: 34px;
+      line-height: 1.1;
+      margin-bottom: 12px;
+      letter-spacing: -0.04em;
+    }
+
+    h2 {
+      font-size: 22px;
+      margin-bottom: 8px;
+      letter-spacing: -0.02em;
+    }
+
+    .tagline {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 18px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 10px;
+      background: var(--surface-soft);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      font-size: 12px;
+      color: #344054;
+      white-space: nowrap;
+    }
+
+    .pill.accent { background: var(--accent-soft); color: #1d4ed8; border-color: #d8e8ff; }
+    .pill.green { background: var(--green-soft); color: #027a48; border-color: #d1fadf; }
+    .pill.amber { background: var(--amber-soft); color: #b54708; border-color: #fedf89; }
+    .pill.purple { background: var(--purple-soft); color: #5b21b6; border-color: #e0d7ff; }
+
+    .nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+      max-width: 610px;
+    }
+
+    .nav a {
+      color: #344054;
+      text-decoration: none;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      font-size: 12px;
+      background: #fff;
+    }
+
+    .section {
+      margin-top: 24px;
+      padding: 24px;
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      background: #fff;
+      box-shadow: var(--shadow);
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      align-items: flex-start;
+      margin-bottom: 16px;
+    }
+
+    .section-header p {
+      color: var(--muted);
+      margin-bottom: 0;
+      max-width: 860px;
+      font-size: 14px;
+    }
+
+    .section-badge {
+      padding: 7px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      background: var(--green-soft);
+      color: #027a48;
+      border: 1px solid #d1fadf;
+      white-space: nowrap;
+    }
+
+    .section-badge.later {
+      background: var(--surface-soft);
+      color: #475467;
+      border-color: var(--border);
+    }
+
+    .grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+    .metric-card {
+      position: relative;
+      min-height: 172px;
+      padding: 18px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      overflow: hidden;
+    }
+
+    .metric-card.accent-line::after {
+      content: "";
+      position: absolute;
+      inset: auto 0 0 0;
+      height: 3px;
+      background: var(--accent);
+      opacity: .85;
+    }
+
+    .metric-card.green.accent-line::after { background: var(--green); }
+    .metric-card.amber.accent-line::after { background: var(--amber); }
+    .metric-card.red.accent-line::after { background: var(--red); }
+    .metric-card.purple.accent-line::after { background: var(--purple); }
+
+    .metric-card.soft-blue { background: linear-gradient(180deg, #ffffff 0%, #eef5ff 180%); }
+    .metric-card.soft-green { background: linear-gradient(180deg, #ffffff 0%, #ecfdf3 180%); }
+    .metric-card.soft-amber { background: linear-gradient(180deg, #ffffff 0%, #fffaeb 180%); }
+    .metric-card.soft-purple { background: linear-gradient(180deg, #ffffff 0%, #f4f3ff 180%); }
+    .metric-card.soft-red { background: linear-gradient(180deg, #ffffff 0%, #fff1f1 180%); }
+
+    .metric-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: flex-start;
+      margin-bottom: 10px;
+    }
+
+    .metric-title {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+      max-width: 78%;
+    }
+
+    .metric-value {
+      font-size: 26px;
+      font-weight: 780;
+      letter-spacing: -0.04em;
+      margin-bottom: 5px;
+    }
+
+    .metric-value.big-percent {
+      font-size: 38px;
+      margin-top: 3px;
+    }
+
+    .metric-caption {
+      font-size: 12px;
+      color: var(--muted);
+      margin: 0 0 14px;
+      min-height: 34px;
+    }
+
+    .trend {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px 7px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 750;
+      white-space: nowrap;
+    }
+
+    .trend.up { background: var(--green-soft); color: #027a48; }
+    .trend.down { background: var(--red-soft); color: #b42318; }
+    .trend.neutral { background: var(--surface-soft); color: #475467; }
+    .trend.warn { background: var(--amber-soft); color: #b54708; }
+    .trend.no { background: #fff; color: var(--muted-2); border: 1px solid var(--border); }
+
+    .spark {
+      display: flex;
+      align-items: flex-end;
+      gap: 5px;
+      height: 28px;
+      margin-top: 8px;
+    }
+
+    .spark span {
+      width: 100%;
+      min-width: 5px;
+      height: calc(var(--h) * 1%);
+      border-radius: 6px 6px 2px 2px;
+      background: #d8e8ff;
+    }
+
+    .green .spark span { background: #d1fadf; }
+    .amber .spark span { background: #fedf89; }
+    .red .spark span { background: #ffd4d1; }
+    .purple .spark span { background: #e0d7ff; }
+
+    .line-chart {
+      width: 100%;
+      height: 42px;
+      margin-top: 2px;
+    }
+
+    .donut-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-top: 6px;
+    }
+
+    .donut {
+      width: 62px;
+      height: 62px;
+      border-radius: 50%;
+      background: conic-gradient(var(--donut-color) calc(var(--value) * 1%), #eef1f5 0);
+      position: relative;
+      flex: 0 0 auto;
+    }
+
+    .donut::after {
+      content: attr(data-label);
+      position: absolute;
+      inset: 9px;
+      border-radius: 50%;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .progress {
+      height: 9px;
+      border-radius: 999px;
+      background: #eef1f5;
+      overflow: hidden;
+      margin-top: 12px;
+    }
+
+    .progress span {
+      display: block;
+      height: 100%;
+      width: calc(var(--value) * 1%);
+      background: var(--accent);
+      border-radius: 999px;
+    }
+
+    .progress.green span { background: var(--green); }
+    .progress.amber span { background: var(--amber); }
+    .progress.purple span { background: var(--purple); }
+    .progress.red span { background: var(--red); }
+
+    .split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .split-item {
+      padding: 9px 10px;
+      border-radius: 12px;
+      background: var(--surface-soft);
+      border: 1px solid var(--border);
+    }
+
+    .split-item .label {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 2px;
+    }
+
+    .split-item .value {
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .status-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 12px;
+    }
+
+    .status-chip {
+      padding: 5px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: #344054;
+    }
+
+    .status-chip.warn { background: var(--amber-soft); color: #b54708; border-color: #fedf89; }
+    .status-chip.good { background: var(--green-soft); color: #027a48; border-color: #d1fadf; }
+    .status-chip.bad { background: var(--red-soft); color: #b42318; border-color: #ffd4d1; }
+
+    .mini-note {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 11px;
+      margin-top: 4px;
+    }
+
+    .muted-section {
+      opacity: .88;
+      border-style: dashed;
+    }
+
+    .later-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .later-card {
+      padding: 14px 16px;
+      border: 1px dashed var(--border);
+      border-radius: 16px;
+      background: var(--surface-soft);
+      font-size: 13px;
+      color: #344054;
+    }
+
+    .later-card strong { display: block; color: var(--text); margin-bottom: 4px; }
+
+    .footer {
+      margin-top: 24px;
+      color: var(--muted-2);
+      font-size: 12px;
+      text-align: center;
+    }
+
+    @media (max-width: 1180px) {
+      .grid-4, .later-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 720px) {
+      .page { padding: 18px; }
+      .topbar { flex-direction: column; padding: 22px; }
+      .nav { justify-content: flex-start; max-width: none; }
+      .grid-4, .later-grid { grid-template-columns: 1fr; }
+      .section-header { flex-direction: column; }
+      h1 { font-size: 28px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="topbar">
+      <div>
+        <h1>Карта KPI-карточек</h1>
+        <div class="tagline">
+          <span class="pill green">KPI-карточки</span>
+          <span class="pill purple">Юнит-аналитика</span>
+          <span class="pill amber">Демо-значения</span>
+          <span class="pill accent">Варианты оформления</span>
+        </div>
+      </div>
+      <nav class="nav">
+        <a href="#variants">Варианты</a>
+        <a href="#overview">Обзор</a>
+        <a href="#users">Пользователи</a>
+        <a href="#products">Продукты</a>
+        <a href="#cards">Карты</a>
+        <a href="#acquiring">Эквайринг</a>
+        <a href="#exchange">Обмен</a>
+        <a href="#wl">WL</a>
+        <a href="#b2b">B2B</a>
+        <a href="#risk">Риск</a>
+        <a href="#fiat">Фиат</a>
+        <a href="#crypto">Крипто</a>
+      </nav>
+    </header>
+
+    <section class="section" id="variants">
+      <div class="section-header"><div><h2>Варианты оформления KPI-карточек</h2><p>Несколько форматов для разных типов показателей: текущие значения, динамика, доли, статусы, сравнение и мини-графики</p></div></div>
+      <div class="grid grid-4">
+        <div class="metric-card accent-line">
+          <div class="metric-top"><div class="metric-title">Базовая карточка</div><span class="trend no">текущее</span></div>
+          <div class="metric-value">64 800</div>
+          <p class="metric-caption">Подходит для общего количества: пользователи, WL, партнеры, карты</p>
+          <span class="mini-note">без сравнения с прошлым периодом</span>
+        </div>
+
+        <div class="metric-card green soft-green accent-line">
+          <div class="metric-top"><div class="metric-title">Карточка с трендом</div><span class="trend up">+8%</span></div>
+          <div class="metric-value">184,2 млн ₽</div>
+          <p class="metric-caption">Подходит для оборота, выручки, операций и активной базы</p>
+          <div class="spark"><span style="--h:42"></span><span style="--h:52"></span><span style="--h:49"></span><span style="--h:68"></span><span style="--h:72"></span><span style="--h:86"></span></div>
+        </div>
+
+        <div class="metric-card purple soft-purple">
+          <div class="metric-top"><div class="metric-title">Процент / доля</div><span class="trend up">+4 п.п.</span></div>
+          <div class="metric-value big-percent">72%</div>
+          <p class="metric-caption">Подходит для конверсии, доли успешных операций, доли активных карт</p>
+          <div class="progress purple" style="--value:72"><span></span></div>
+        </div>
+
+        <div class="metric-card soft-blue">
+          <div class="metric-top"><div class="metric-title">Мини-график линией</div><span class="trend neutral">0%</span></div>
+          <div class="metric-value">18 420</div>
+          <p class="metric-caption">Подходит для активных пользователей и регулярной динамики</p>
+          <svg class="line-chart" viewBox="0 0 220 42" preserveAspectRatio="none" aria-hidden="true">
+            <polyline fill="none" stroke="#1f6feb" stroke-width="3" points="0,30 36,22 72,26 108,16 144,18 180,12 220,10" />
+            <path d="M0,30 L36,22 L72,26 L108,16 L144,18 L180,12 L220,10 L220,42 L0,42 Z" fill="#eef5ff" opacity=".9" />
+          </svg>
+        </div>
+
+        <div class="metric-card green">
+          <div class="metric-top"><div class="metric-title">Круговой индикатор</div><span class="trend up">+2%</span></div>
+          <div class="metric-value">Успешность</div>
+          <p class="metric-caption">Подходит для долей: успешные операции, KYC approval, конверсия оплаты</p>
+          <div class="donut-wrap">
+            <div class="donut" style="--value:86;--donut-color:#12b76a" data-label="86%"></div>
+            <span class="mini-note">доля успешных операций</span>
+          </div>
+        </div>
+
+        <div class="metric-card amber soft-amber">
+          <div class="metric-top"><div class="metric-title">Статусная карточка</div><span class="trend warn">очередь</span></div>
+          <div class="metric-value">486</div>
+          <p class="metric-caption">Подходит для очередей, ручных проверок и операций в обработке</p>
+          <div class="status-list">
+            <span class="status-chip warn">ожидание</span>
+            <span class="status-chip">обработка</span>
+            <span class="status-chip bad">ошибка</span>
+          </div>
+        </div>
+
+        <div class="metric-card red soft-red">
+          <div class="metric-top"><div class="metric-title">Риск / проблема</div><span class="trend down">+3%</span></div>
+          <div class="metric-value">124</div>
+          <p class="metric-caption">Подходит для отказов, блокировок, ошибок, просрочек</p>
+          <div class="spark"><span style="--h:36"></span><span style="--h:44"></span><span style="--h:46"></span><span style="--h:52"></span><span style="--h:57"></span><span style="--h:70"></span></div>
+        </div>
+
+        <div class="metric-card soft-purple">
+          <div class="metric-top"><div class="metric-title">Сравнение двух потоков</div><span class="trend neutral">баланс</span></div>
+          <div class="metric-value">+17,6 млн ₽</div>
+          <p class="metric-caption">Подходит для пополнений / выводов, входящего / исходящего потока</p>
+          <div class="split">
+            <div class="split-item"><div class="label">Пополнения</div><div class="value">58,8 млн</div></div>
+            <div class="split-item"><div class="label">Выводы</div><div class="value">41,2 млн</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="overview">
+      <div class="section-header"><div><h2>Общий обзор платформы</h2><p>Масштаб, деньги и общая активность платформы</p></div><span class="section-badge">первый этап</span></div>
+      <div class="grid grid-4">
+        <div class="metric-card green soft-green accent-line"><div class="metric-top"><div class="metric-title">Общий оборот платформы</div><span class="trend up">+8%</span></div><div class="metric-value">184,2 млн ₽</div><p class="metric-caption">Сумма успешных операций за период</p><div class="spark"><span style="--h:42"></span><span style="--h:52"></span><span style="--h:49"></span><span style="--h:68"></span><span style="--h:72"></span><span style="--h:86"></span></div></div>
+        <div class="metric-card soft-blue"><div class="metric-top"><div class="metric-title">Общая выручка платформы</div><span class="trend up">+5%</span></div><div class="metric-value">6,4 млн ₽</div><p class="metric-caption">Комиссии, спред и доход сервисов</p><svg class="line-chart" viewBox="0 0 220 42" preserveAspectRatio="none"><polyline fill="none" stroke="#1f6feb" stroke-width="3" points="0,31 40,29 80,24 120,20 160,17 220,12" /></svg></div>
+        <div class="metric-card purple soft-purple"><div class="metric-top"><div class="metric-title">Активные пользователи</div><span class="trend neutral">0%</span></div><div class="metric-value">18 420</div><p class="metric-caption">Пользователи со значимым действием</p><div class="spark"><span style="--h:60"></span><span style="--h:63"></span><span style="--h:61"></span><span style="--h:64"></span><span style="--h:62"></span><span style="--h:63"></span></div></div>
+        <div class="metric-card amber soft-amber accent-line"><div class="metric-top"><div class="metric-title">Операций за период</div><span class="trend up">+11%</span></div><div class="metric-value">52 180</div><p class="metric-caption">Количество успешных операций</p><div class="spark"><span style="--h:35"></span><span style="--h:48"></span><span style="--h:55"></span><span style="--h:64"></span><span style="--h:70"></span><span style="--h:82"></span></div></div>
+      </div>
+    </section>
+
+    <section class="section" id="users">
+      <div class="section-header"><div><h2>Пользователи</h2><p>Рост базы, активность и готовность пользователей к операциям</p></div><span class="section-badge">первый этап</span></div>
+      <div class="grid grid-4">
+        <div class="metric-card accent-line"><div class="metric-top"><div class="metric-title">Всего пользователей</div><span class="trend no">текущее</span></div><div class="metric-value">64 800</div><p class="metric-caption">Аккаунты без технических пользователей</p><span class="mini-note">срез базы</span></div>
+        <div class="metric-card green soft-green"><div class="metric-top"><div class="metric-title">Новые пользователи</div><span class="trend up">+9%</span></div><div class="metric-value">3 240</div><p class="metric-caption">Регистрации за выбранный период</p><div class="spark"><span style="--h:32"></span><span style="--h:45"></span><span style="--h:40"></span><span style="--h:55"></span><span style="--h:60"></span><span style="--h:74"></span></div></div>
+        <div class="metric-card purple soft-purple"><div class="metric-top"><div class="metric-title">Активные пользователи</div><span class="trend up">+4%</span></div><div class="metric-value">18 420</div><p class="metric-caption">Пользователи с операцией или действием</p><svg class="line-chart" viewBox="0 0 220 42" preserveAspectRatio="none"><polyline fill="none" stroke="#7a5af8" stroke-width="3" points="0,32 42,26 84,24 126,21 168,18 220,14" /></svg></div>
+        <div class="metric-card amber"><div class="metric-top"><div class="metric-title">Верифицированные пользователи</div><span class="trend up">+6%</span></div><div class="metric-value big-percent">64%</div><p class="metric-caption">Доля пользователей с одобренным KYC</p><div class="progress amber" style="--value:64"><span></span></div></div>
+      </div>
+    </section>
+
+    <section class="section" id="products">
+      <div class="section-header"><div><h2>Продукты - общий обзор</h2><p>Общий слой перед детальными продуктовыми дэшбордами</p></div><span class="section-badge">первый этап</span></div>
+      <div class="grid grid-4">
+        <div class="metric-card"><div class="metric-top"><div class="metric-title">Активных продуктов</div><span class="trend no">текущее</span></div><div class="metric-value">6</div><p class="metric-caption">Продукты с активностью за период</p><div class="status-list"><span class="status-chip good">карты</span><span class="status-chip good">обмен</span><span class="status-chip good">эквайринг</span></div></div>
+        <div class="metric-card purple soft-purple"><div class="metric-top"><div class="metric-title">Активные пользователи продуктов</div><span class="trend up">+4%</span></div><div class="metric-value">14 960</div><p class="metric-caption">Пользователи хотя бы одного сервиса</p><div class="spark"><span style="--h:39"></span><span style="--h:45"></span><span style="--h:51"></span><span style="--h:56"></span><span style="--h:62"></span><span style="--h:68"></span></div></div>
+        <div class="metric-card green soft-green"><div class="metric-top"><div class="metric-title">Оборот по продуктам</div><span class="trend up">+7%</span></div><div class="metric-value">151,7 млн ₽</div><p class="metric-caption">Совокупный оборот продуктовых сервисов</p><svg class="line-chart" viewBox="0 0 220 42" preserveAspectRatio="none"><polyline fill="none" stroke="#12b76a" stroke-width="3" points="0,34 40,30 80,24 120,26 160,18 220,10" /></svg></div>
+        <div class="metric-card soft-blue accent-line"><div class="metric-top"><div class="metric-title">Выручка по продуктам</div><span class="trend up">+5%</span></div><div class="metric-value">5,8 млн ₽</div><p class="metric-caption">Доход от продуктовых сервисов</p><div class="spark"><span style="--h:38"></span><span style="--h:44"></span><span style="--h:48"></span><span style="--h:53"></span><span style="--h:58"></span><span style="--h:65"></span></div></div>
+      </div>
+    </section>
+
+    <section class="section" id="cards">
+      <div class="section-header"><div><h2>Карты</h2><p>Выпуск, активность, оборот и доход карточного продукта</p></div><span class="section-badge">первый этап</span></div>
+      <div class="grid grid-4">
+        <div class="metric-card"><div class="metric-top"><div class="metric-title">Всего выпущено карт</div><span class="trend no">текущее</span></div><div class="metric-value">12 840</div><p class="metric-caption">Все выпущенные карты</p><span class="mini-note">портфель карт</span></div>
+        <div class="metric-card green"><div class="metric-top"><div class="metric-title">Активных карт</div><span class="trend up">+3%</span></div><div class="metric-value big-percent">68%</div><p class="metric-caption">Карты с транзакционной активностью</p><div class="progress green" style="--value:68"><span></span></div></div>
+        <div class="metric-card soft-green"><div class="metric-top"><div class="metric-title">Оборот по картам</div><span class="trend up">+6%</span></div><div class="metric-value">28,4 млн ₽</div><p class="metric-caption">Сумма успешных карточных транзакций</p><div class="spark"><span style="--h:34"></span><span style="--h:39"></span><span style="--h:48"></span><span style="--h:52"></span><span style="--h:64"></span><span style="--h:74"></span></div></div>
+        <div class="metric-card soft-blue"><div class="metric-top"><div class="metric-title">Выручка с карт</div><span class="trend up">+4%</span></div><div class="metric-value">920 тыс ₽</div><p class="metric-caption">Комиссии по успешным операциям</p><svg class="line-chart" viewBox="0 0 220 42" preserveAspectRatio="none"><polyline fill="none" stroke="#1f6feb" stroke-width="3" points="0,30 40,27 80,26 120,22 160,18 220,15" /></svg></div>
+      </div>
+    </section>
+
+    <section class="section" id="acquiring">
+      <div class="section-header"><div><h2>Криптоэквайринг</h2><p>Инвойсы, оплаты, мерчанты и выручка</p></div><span class="section-badge">первый этап</span></div>
+      <div class="grid grid-4">
+        <div class="metric-card accent-line"><div class="metric-top"><div class="metric-title">Созданных инвойсов</div><span class="trend up">+12%</span></div><div class="metric-value">4 820</div><p class="metric-caption">Инвойсы за выбранный период</p><div class="spark"><span style="--h:25"></span><span style="--h:36"></span><span style="--h:44"></span><span style="--h:57"></span><span style="--h:69"></span><span style="--h:82"></span></div></div>
+        <div class="metric-card green soft-green"><div class="metric-top"><div class="metric-title">Инвойсов с фактом оплаты</div><span class="trend up">+7%</span></div><div class="metric-value big-percent">61%</div><p class="metric-caption">Доля инвойсов с оплатой</p><div class="donut-wrap"><div class="donut" style="--value:61;--donut-color:#12b76a" data-label="61%"></div><span class="mini-note">оплата / создание</span></div></div>
+        <div class="metric-card soft-blue"><div class="metric-top"><div class="metric-title">Объем оплаченных инвойсов</div><span class="trend up">+9%</span></div><div class="metric-value">19,6 млн ₽</div><p class="metric-caption">Сумма оплат по инвойсам</p><svg class="line-chart" viewBox="0 0 220 42" preserveAspectRatio="none"><polyline fill="none" stroke="#1f6feb" stroke-width="3" points="0,35 36,31 72,28 108,22 144,16 180,18 220,10" /></svg></div>
+        <div class="metric-card purple"><div class="metric-top"><div class="metric-title">Активных мерчантов</div><span class="trend up">+5%</span></div><div class="metric-value">186</div><p class="metric-caption">Мерчанты с инвойсами или оплатами</p><div class="status-list"><span class="status-chip good">API</span><span class="status-chip good">ручные</span><span class="status-chip">виджет</span></div></div>
+      </div>
+    </section>
+
+    <section class="section" id="exchange">
+      <div class="section-header"><div><h2>Обмен / торговля</h2><p>Спрос на обмен, оборот и комиссионный доход</p></div><span class="section-badge">первый этап</span></div>
+      <div class="grid grid-4">
+        <div class="metric-card"><div class="metric-top"><div class="metric-title">Обменов за период</div><span class="trend up">+10%</span></div><div class="metric-value">11 450</div><p class="metric-caption">Количество успешных обменов</p><div class="spark"><span style="--h:35"></span><span style="--h:39"></span><span style="--h:45"></span><span style="--h:54"></span><span style="--h:67"></span><span style="--h:78"></span></div></div>
+        <div class="metric-card green soft-green"><div class="metric-top"><div class="metric-title">Объем обменов</div><span class="trend up">+6%</span></div><div class="metric-value">47,3 млн ₽</div><p class="metric-caption">Сумма успешных обменов</p><svg class="line-chart" viewBox="0 0 220 42" preserveAspectRatio="none"><polyline fill="none" stroke="#12b76a" stroke-width="3" points="0,32 36,30 72,24 108,25 144,19 180,16 220,12" /></svg></div>
+        <div class="metric-card soft-blue"><div class="metric-top"><div class="metric-title">Выручка с обменов</div><span class="trend up">+4%</span></div><div class="metric-value">1,4 млн ₽</div><p class="metric-caption">Комиссии и спред по обменам</p><div class="spark"><span style="--h:45"></span><span style="--h:48"></span><span style="--h:50"></span><span style="--h:57"></span><span style="--h:61"></span><span style="--h:69"></span></div></div>
+        <div class="metric-card purple"><div class="metric-top"><div class="metric-title">Активных пользователей обмена</div><span class="trend neutral">+1%</span></div><div class="metric-value">6 870</div><p class="metric-caption">Пользователи с успешным обменом</p><div class="donut-wrap"><div class="donut" style="--value:37;--donut-color:#7a5af8" data-label="37%"></div><span class="mini-note">от активной базы</span></div></div>
+      </div>
+    </section>
+
+    <section class="section" id="wl">
+      <div class="section-header"><div><h2>White Label</h2><p>Масштаб и финансовый вклад WL-контуров</p></div><span class="section-badge">первый этап</span></div>
+      <div class="grid grid-4">
+        <div class="metric-card"><div class="metric-top"><div class="metric-title">Активных WL-контуров</div><span class="trend no">текущее</span></div><div class="metric-value">14</div><p class="metric-caption">Подключенные и активные WL</p><span class="mini-note">партнерская сеть</span></div>
+        <div class="metric-card purple soft-purple"><div class="metric-top"><div class="metric-title">Пользователей по WL</div><span class="trend up">+6%</span></div><div class="metric-value">22 300</div><p class="metric-caption">Пользователи всех WL-контуров</p><div class="spark"><span style="--h:35"></span><span style="--h:44"></span><span style="--h:50"></span><span style="--h:58"></span><span style="--h:62"></span><span style="--h:73"></span></div></div>
+        <div class="metric-card green soft-green"><div class="metric-top"><div class="metric-title">Оборот по WL</div><span class="trend up">+12%</span></div><div class="metric-value">48,8 млн ₽</div><p class="metric-caption">Успешный оборот WL-контуров</p><svg class="line-chart" viewBox="0 0 220 42" preserveAspectRatio="none"><polyline fill="none" stroke="#12b76a" stroke-width="3" points="0,35 36,32 72,30 108,22 144,18 180,13 220,9" /></svg></div>
+        <div class="metric-card soft-blue"><div class="metric-top"><div class="metric-title">Комиссия платформы по WL</div><span class="trend up">+5%</span></div><div class="metric-value">2,2 млн ₽</div><p class="metric-caption">Доля комиссии платформы</p><div class="spark"><span style="--h:38"></span><span style="--h:43"></span><span style="--h:48"></span><span style="--h:52"></span><span style="--h:56"></span><span style="--h:64"></span></div></div>
+      </div>
+    </section>
+
+    <section class="section" id="b2b">
+      <div class="section-header"><div><h2>B2B-партнеры</h2><p>Партнеры как источник клиентов, операций и оборота</p></div><span class="section-badge">первый этап</span></div>
+      <div class="grid grid-4">
+        <div class="metric-card"><div class="metric-top"><div class="metric-title">Активных B2B-партнеров</div><span class="trend no">текущее</span></div><div class="metric-value">21</div><p class="metric-caption">Партнеры с операциями или активностью</p><div class="status-list"><span class="status-chip good">операции</span><span class="status-chip">API</span></div></div>
+        <div class="metric-card purple soft-purple"><div class="metric-top"><div class="metric-title">Клиентов партнеров всего</div><span class="trend up">+7%</span></div><div class="metric-value">9 840</div><p class="metric-caption">Внешние клиенты B2B-партнеров</p><div class="spark"><span style="--h:38"></span><span style="--h:47"></span><span style="--h:50"></span><span style="--h:58"></span><span style="--h:66"></span><span style="--h:72"></span></div></div>
+        <div class="metric-card green soft-green"><div class="metric-top"><div class="metric-title">Оборот по партнерам</div><span class="trend up">+10%</span></div><div class="metric-value">31,5 млн ₽</div><p class="metric-caption">Оборот клиентов партнерского контура</p><svg class="line-chart" viewBox="0 0 220 42" preserveAspectRatio="none"><polyline fill="none" stroke="#12b76a" stroke-width="3" points="0,36 40,30 80,27 120,21 160,15 220,11" /></svg></div>
+        <div class="metric-card amber"><div class="metric-top"><div class="metric-title">Операций по партнерам</div><span class="trend up">+6%</span></div><div class="metric-value">7 920</div><p class="metric-caption">Успешные операции клиентов партнеров</p><div class="spark"><span style="--h:40"></span><span style="--h:44"></span><span style="--h:51"></span><span style="--h:56"></span><span style="--h:62"></span><span style="--h:70"></span></div></div>
+      </div>
+    </section>
+
+    <section class="section" id="risk">
+      <div class="section-header"><div><h2>KYC / AML</h2><p>Потери в проверках, ручная нагрузка и операции в обработке</p></div><span class="section-badge">первый этап</span></div>
+      <div class="grid grid-4">
+        <div class="metric-card amber soft-amber"><div class="metric-top"><div class="metric-title">KYC-заявок на проверке</div><span class="trend warn">очередь</span></div><div class="metric-value">238</div><p class="metric-caption">Заявки в ожидании решения</p><div class="status-list"><span class="status-chip warn">pending</span><span class="status-chip">review</span></div></div>
+        <div class="metric-card red soft-red"><div class="metric-top"><div class="metric-title">Отказов KYC</div><span class="trend down">+3%</span></div><div class="metric-value">124</div><p class="metric-caption">Отклоненные проверки за период</p><div class="spark"><span style="--h:42"></span><span style="--h:38"></span><span style="--h:45"></span><span style="--h:48"></span><span style="--h:50"></span><span style="--h:55"></span></div></div>
+        <div class="metric-card amber"><div class="metric-top"><div class="metric-title">Ручных AML-проверок</div><span class="trend warn">ручная</span></div><div class="metric-value">312</div><p class="metric-caption">Проверки на ручном рассмотрении</p><div class="donut-wrap"><div class="donut" style="--value:18;--donut-color:#f79009" data-label="18%"></div><span class="mini-note">от всех AML</span></div></div>
+        <div class="metric-card red"><div class="metric-top"><div class="metric-title">Операций в обработке</div><span class="trend warn">сейчас</span></div><div class="metric-value">486</div><p class="metric-caption">Ожидание, обработка или проверка</p><div class="spark"><span style="--h:46"></span><span style="--h:50"></span><span style="--h:58"></span><span style="--h:64"></span><span style="--h:62"></span><span style="--h:70"></span></div></div>
+      </div>
+    </section>
+
+    <section class="section" id="fiat">
+      <div class="section-header"><div><h2>Фиатные операции</h2><p>Входящий и исходящий фиатный поток</p></div><span class="section-badge">первый этап</span></div>
+      <div class="grid grid-4">
+        <div class="metric-card green"><div class="metric-top"><div class="metric-title">Фиатных пополнений</div><span class="trend up">+5%</span></div><div class="metric-value">6 240</div><p class="metric-caption">Успешные фиатные пополнения</p><div class="spark"><span style="--h:38"></span><span style="--h:44"></span><span style="--h:47"></span><span style="--h:55"></span><span style="--h:61"></span><span style="--h:66"></span></div></div>
+        <div class="metric-card green soft-green"><div class="metric-top"><div class="metric-title">Объем фиатных пополнений</div><span class="trend up">+8%</span></div><div class="metric-value">58,8 млн ₽</div><p class="metric-caption">Сумма успешных пополнений</p><svg class="line-chart" viewBox="0 0 220 42" preserveAspectRatio="none"><polyline fill="none" stroke="#12b76a" stroke-width="3" points="0,35 36,31 72,27 108,20 144,15 180,14 220,10" /></svg></div>
+        <div class="metric-card"><div class="metric-top"><div class="metric-title">Фиатных выводов</div><span class="trend neutral">+1%</span></div><div class="metric-value">3 180</div><p class="metric-caption">Успешные фиатные выводы</p><div class="spark"><span style="--h:50"></span><span style="--h:52"></span><span style="--h:49"></span><span style="--h:53"></span><span style="--h:55"></span><span style="--h:54"></span></div></div>
+        <div class="metric-card soft-purple"><div class="metric-top"><div class="metric-title">Чистый фиатный поток</div><span class="trend neutral">баланс</span></div><div class="metric-value">+17,6 млн ₽</div><p class="metric-caption">Пополнения минус выводы</p><div class="split"><div class="split-item"><div class="label">Вход</div><div class="value">58,8 млн</div></div><div class="split-item"><div class="label">Выход</div><div class="value">41,2 млн</div></div></div></div>
+      </div>
+    </section>
+
+    <section class="section" id="crypto">
+      <div class="section-header"><div><h2>Криптооперации</h2><p>On-chain пополнения, выводы и объем криптоактивности</p></div><span class="section-badge">первый этап</span></div>
+      <div class="grid grid-4">
+        <div class="metric-card green"><div class="metric-top"><div class="metric-title">Криптопополнений</div><span class="trend up">+6%</span></div><div class="metric-value">8 760</div><p class="metric-caption">Успешные входящие операции</p><div class="spark"><span style="--h:36"></span><span style="--h:42"></span><span style="--h:49"></span><span style="--h:54"></span><span style="--h:61"></span><span style="--h:70"></span></div></div>
+        <div class="metric-card green soft-green"><div class="metric-top"><div class="metric-title">Объем криптопополнений</div><span class="trend up">+9%</span></div><div class="metric-value">74,5 млн ₽</div><p class="metric-caption">Сумма успешных пополнений</p><svg class="line-chart" viewBox="0 0 220 42" preserveAspectRatio="none"><polyline fill="none" stroke="#12b76a" stroke-width="3" points="0,36 40,32 80,25 120,20 160,16 220,9" /></svg></div>
+        <div class="metric-card purple"><div class="metric-top"><div class="metric-title">Криптовыводов</div><span class="trend up">+3%</span></div><div class="metric-value">5 120</div><p class="metric-caption">Успешные исходящие операции</p><div class="spark"><span style="--h:44"></span><span style="--h:48"></span><span style="--h:50"></span><span style="--h:55"></span><span style="--h:58"></span><span style="--h:61"></span></div></div>
+        <div class="metric-card soft-purple"><div class="metric-top"><div class="metric-title">Криптооперации по валютам</div><span class="trend no">срез</span></div><div class="metric-value">USDT</div><p class="metric-caption">Ведущий актив по операциям</p><div class="donut-wrap"><div class="donut" style="--value:54;--donut-color:#7a5af8" data-label="54%"></div><span class="mini-note">доля в операциях</span></div></div>
+      </div>
+    </section>
+
+    <section class="section muted-section" id="later">
+      <div class="section-header"><div><h2>Следующие этапы</h2><p>Направления, которые можно добавить отдельными наборами карточек позже</p></div><span class="section-badge later">позже</span></div>
+      <div class="later-grid">
+        <div class="later-card"><strong>Реферальная система</strong>Регистрации, активации, бонусы, промокоды</div>
+        <div class="later-card"><strong>P2P / OTC</strong>Сделки, объем, споры, оферты, подтверждения</div>
+        <div class="later-card"><strong>Инвестиции</strong>AUM, позиции, новые инвестиции, выплаты доходности</div>
+        <div class="later-card"><strong>Займы / вклады / клиринг</strong>Портфели, проценты, просрочки, взаиморасчеты</div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
