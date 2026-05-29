@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Варианты аналитических метрик</title>
+  <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --surface: #ffffff;
+      --surface-soft: #f7f8fa;
+      --border: #e8ebef;
+      --text: #111827;
+      --muted: #667085;
+      --muted-2: #98a2b3;
+      --accent: #1f6feb;
+      --accent-soft: #eef5ff;
+      --green: #12b76a;
+      --amber: #f79009;
+      --red: #f04438;
+      --purple: #7a5af8;
+      --shadow: 0 8px 28px rgba(16, 24, 40, 0.06);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      line-height: 1.5;
+    }
+
+    .page {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 28px 28px 60px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 24px;
+      padding: 28px;
+      border: 1px solid var(--border);
+      border-radius: 26px;
+      box-shadow: var(--shadow);
+      background: linear-gradient(180deg, #ffffff 0%, #fbfcff 100%);
+      margin-bottom: 22px;
+    }
+
+    h1, h2, h3, p { margin-top: 0; }
+
+    h1 {
+      font-size: 34px;
+      line-height: 1.1;
+      margin-bottom: 12px;
+      letter-spacing: -0.04em;
+    }
+
+    h2 {
+      font-size: 22px;
+      margin-bottom: 10px;
+      letter-spacing: -0.02em;
+    }
+
+    h3 {
+      font-size: 16px;
+      margin-bottom: 8px;
+      letter-spacing: -0.01em;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      max-width: 920px;
+      margin-bottom: 0;
+      font-size: 15px;
+    }
+
+    .tagline {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 18px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 10px;
+      background: var(--surface-soft);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      font-size: 12px;
+      color: #344054;
+      white-space: nowrap;
+    }
+
+    .pill.accent { background: var(--accent-soft); color: #1d4ed8; border-color: #d8e8ff; }
+    .pill.green { background: #ecfdf3; color: #027a48; border-color: #d1fadf; }
+    .pill.amber { background: #fffaeb; color: #b54708; border-color: #fedf89; }
+    .pill.red { background: #fff1f1; color: #b42318; border-color: #ffd4d1; }
+    .pill.purple { background: #f4f3ff; color: #5b21b6; border-color: #e0d7ff; }
+
+    .section {
+      margin-top: 24px;
+      padding: 24px;
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      background: #fff;
+      box-shadow: var(--shadow);
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      align-items: flex-start;
+      margin-bottom: 16px;
+    }
+
+    .section-header p {
+      color: var(--muted);
+      margin-bottom: 0;
+      max-width: 900px;
+      font-size: 14px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+    .simple-card {
+      padding: 18px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+    }
+
+    .simple-card-title {
+      font-weight: 750;
+      font-size: 15px;
+      margin-bottom: 8px;
+    }
+
+    .simple-card p {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 0;
+    }
+
+    .chart-card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      overflow: hidden;
+      min-height: 400px;
+    }
+
+    .chart-top {
+      padding: 16px 18px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .chart-title {
+      margin-bottom: 0;
+      font-size: 15px;
+    }
+
+    .chart-desc {
+      padding: 4px 18px 0;
+      color: var(--muted);
+      font-size: 12px;
+      margin: 0;
+      min-height: 22px;
+    }
+
+    .badge {
+      padding: 6px 9px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 650;
+      white-space: nowrap;
+      background: var(--surface-soft);
+      color: #344054;
+      border: 1px solid var(--border);
+    }
+
+    .badge.must { background: #ecfdf3; color: #027a48; border-color: #d1fadf; }
+    .badge.nice { background: #eff4ff; color: #3538cd; border-color: #d8e8ff; }
+    .badge.could { background: #fffaeb; color: #b54708; border-color: #fedf89; }
+    .badge.later { background: #f7f8fa; color: #667085; border-color: #e8ebef; }
+
+    .plot {
+      width: 100%;
+      height: 340px;
+    }
+
+    .plot.tall { height: 430px; }
+    .plot.short { height: 300px; }
+    .plot.map { height: 430px; }
+
+    .note {
+      border: 1px solid #d8e8ff;
+      background: var(--accent-soft);
+      color: #184a90;
+      border-radius: 18px;
+      padding: 16px 18px;
+      font-size: 14px;
+      margin-bottom: 18px;
+    }
+
+    .legend-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+
+
+    .funnel-wrap {
+      height: 340px;
+      padding: 18px 20px 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .funnel-step {
+      position: relative;
+      margin: 0 auto;
+      height: 48px;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 650;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      clip-path: polygon(5% 0, 95% 0, 86% 100%, 14% 100%);
+      box-shadow: 0 8px 18px rgba(16, 24, 40, 0.08);
+    }
+
+    .funnel-step .step-label {
+      display: block;
+      line-height: 1.15;
+      padding: 0 12px;
+    }
+
+    .funnel-step .step-value {
+      display: inline-block;
+      margin-left: 8px;
+      font-weight: 800;
+      opacity: .96;
+    }
+
+    .cohort-wrap {
+      height: 340px;
+      padding: 18px;
+      overflow: auto;
+    }
+
+    .cohort-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 6px;
+      font-size: 12px;
+      table-layout: fixed;
+    }
+
+    .cohort-table th {
+      color: var(--muted);
+      font-weight: 650;
+      text-align: center;
+      padding: 4px 6px;
+      white-space: nowrap;
+    }
+
+    .cohort-table th:first-child {
+      text-align: left;
+      width: 70px;
+    }
+
+    .cohort-table td {
+      border-radius: 10px;
+      text-align: center;
+      padding: 12px 8px;
+      font-weight: 750;
+      color: #111827;
+      border: 1px solid rgba(232, 235, 239, 0.7);
+    }
+
+    .cohort-table td.empty {
+      background: #f7f8fa;
+      color: #c4c8cf;
+      font-weight: 500;
+    }
+
+    .cohort-note {
+      color: var(--muted);
+      font-size: 12px;
+      margin: 4px 6px 0;
+    }
+
+
+
+    .matrix-wrap {
+      padding: 14px 16px 16px;
+      overflow-x: auto;
+    }
+
+    .matrix-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 7px;
+      min-width: 520px;
+      table-layout: fixed;
+    }
+
+    .matrix-table th {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 650;
+      text-align: center;
+      padding: 6px 4px;
+      white-space: nowrap;
+    }
+
+    .matrix-table th:first-child {
+      text-align: right;
+      width: 92px;
+    }
+
+    .matrix-table td {
+      height: 44px;
+      border-radius: 12px;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 750;
+      color: #111827;
+      border: 1px solid rgba(232, 235, 239, 0.85);
+    }
+
+    .matrix-table td.level-5 { background: #1f6feb; color: #ffffff; }
+    .matrix-table td.level-4 { background: #9fc3ff; }
+    .matrix-table td.level-3 { background: #d8e8ff; }
+    .matrix-table td.level-2 { background: #eef5ff; }
+    .matrix-table td.level-1 { background: #f7f8fa; color: #667085; }
+
+    .matrix-legend {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 11px;
+      padding: 0 22px 16px;
+    }
+
+    .legend-box {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .legend-swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+    }
+
+    @media (max-width: 980px) {
+      .topbar { flex-direction: column; }
+      .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+      .plot, .plot.tall, .plot.map { height: 360px; }
+      .section-header { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="topbar">
+      <div>
+        <h1>Варианты аналитических метрик</h1>
+        <div class="tagline">
+          <span class="pill accent">Аналитические блоки</span>
+          <span class="pill green">Must Have</span>
+          <span class="pill">Nice to Have</span>
+          <span class="pill amber">Could Have</span>
+        </div>
+      </div>
+    </header>
+
+    <section class="section" id="overview">
+      <div class="section-header">
+        <div>
+          <h2>Обзорные и пользовательские метрики</h2>
+          <p>Форматы для верхнеуровневого анализа: деньги, пользователи, воронки, география и источники активации</p>
+        </div>
+      </div>
+
+      <div class="grid grid-2">
+        <div class="chart-card">
+          <div class="chart-top"><h3 class="chart-title">Динамика оборота и выручки</h3><span class="badge must">Must Have</span></div>
+          <p class="chart-desc">Обзор платформы · линейный график + заливка</p>
+          <div id="turnoverRevenue" class="plot"></div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-top"><h3 class="chart-title">Воронка регистрации и KYC</h3><span class="badge must">Must Have</span></div>
+          <p class="chart-desc">Пользователи · воронка переходов</p>
+          <div id="kycFunnel" class="funnel-wrap">
+            <div class="funnel-step" style="width:96%; background:#1f6feb;"><span class="step-label">Регистрация <span class="step-value">100%</span></span></div>
+            <div class="funnel-step" style="width:82%; background:#2b7be8;"><span class="step-label">Email подтвержден <span class="step-value">86%</span></span></div>
+            <div class="funnel-step" style="width:66%; background:#7a5af8;"><span class="step-label">Документы поданы <span class="step-value">68%</span></span></div>
+            <div class="funnel-step" style="width:52%; background:#12b76a;"><span class="step-label">KYC одобрен <span class="step-value">54%</span></span></div>
+            <div class="funnel-step" style="width:40%; background:#0e9f6e;"><span class="step-label">Первая операция <span class="step-value">39%</span></span></div>
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-top"><h3 class="chart-title">Первый продукт пользователя</h3><span class="badge must">Must Have</span></div>
+          <p class="chart-desc">Пользователи · поток от регистрации к первому продукту</p>
+          <div id="firstProductSankey" class="plot"></div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-top"><h3 class="chart-title">Географический разрез активности</h3><span class="badge must">Must Have</span></div>
+          <p class="chart-desc">Пользователи · карта стран по активности и обороту</p>
+          <div id="geoActivity" class="plot map"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="product">
+      <div class="section-header">
+        <div>
+          <h2>Продукты и продуктовые связи</h2>
+          <p>Варианты для общего обзора продуктов и поиска связок между сервисами</p>
+        </div>
+      </div>
+
+      <div class="grid grid-2">
+        <div class="chart-card">
+          <div class="chart-top"><h3 class="chart-title">Структура выручки по продуктам</h3><span class="badge must">Must Have</span></div>
+          <p class="chart-desc">Обзор платформы / продукты · кольцевая диаграмма</p>
+          <div id="revenueDonut" class="plot"></div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-top"><h3 class="chart-title">Использование продуктов</h3><span class="badge must">Must Have</span></div>
+          <p class="chart-desc">Продукты · горизонтальная рейтинговая диаграмма</p>
+          <div id="productUsageBar" class="plot"></div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-top"><h3 class="chart-title">Матрица продукт × продукт</h3><span class="badge could">Could Have</span></div>
+          <p class="chart-desc">Продукты · пересечение пользователей между сервисами</p>
+          <div class="matrix-wrap">
+            <table class="matrix-table" aria-label="Матрица продукт на продукт">
+              <thead>
+                <tr>
+                  <th></th>
+                  <th>Карты</th>
+                  <th>Обмен</th>
+                  <th>Крипто</th>
+                  <th>Фиат</th>
+                  <th>Эквайринг</th>
+                  <th>B2B</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><th>Карты</th><td class="level-5">100</td><td class="level-3">46</td><td class="level-2">32</td><td class="level-2">38</td><td class="level-1">12</td><td class="level-1">15</td></tr>
+                <tr><th>Обмен</th><td class="level-3">46</td><td class="level-5">100</td><td class="level-4">64</td><td class="level-3">52</td><td class="level-1">20</td><td class="level-1">18</td></tr>
+                <tr><th>Крипто</th><td class="level-2">32</td><td class="level-4">64</td><td class="level-5">100</td><td class="level-2">40</td><td class="level-2">28</td><td class="level-1">22</td></tr>
+                <tr><th>Фиат</th><td class="level-2">38</td><td class="level-3">52</td><td class="level-2">40</td><td class="level-5">100</td><td class="level-1">18</td><td class="level-2">26</td></tr>
+                <tr><th>Эквайринг</th><td class="level-1">12</td><td class="level-1">20</td><td class="level-2">28</td><td class="level-1">18</td><td class="level-5">100</td><td class="level-3">44</td></tr>
+                <tr><th>B2B</th><td class="level-1">15</td><td class="level-1">18</td><td class="level-1">22</td><td class="level-2">26</td><td class="level-3">44</td><td class="level-5">100</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="matrix-legend">
+            <span class="legend-box"><span class="legend-swatch" style="background:#f7f8fa"></span>низкое пересечение</span>
+            <span class="legend-box"><span class="legend-swatch" style="background:#d8e8ff"></span>среднее</span>
+            <span class="legend-box"><span class="legend-swatch" style="background:#1f6feb"></span>высокое</span>
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-top"><h3 class="chart-title">Топ продуктов по росту</h3><span class="badge could">Could Have</span></div>
+          <p class="chart-desc">Продукты · пузырьковая карта роста и выручки</p>
+          <div id="growthBubble" class="plot"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="details">
+      <div class="section-header">
+        <div>
+          <h2>Продуктовые и операционные дэшборды</h2>
+          <p>Примеры конкретных блоков для карт, эквайринга, обмена, фиата, криптоопераций и риска</p>
+        </div>
+      </div>
+
+      <div class="grid grid-2">
+        <div class="chart-card">
+          <div class="chart-top"><h3 class="chart-title">Статусы карт</h3><span class="badge must">Must Have</span></div>
+          <p class="chart-desc">Карты · составная столбчатая диаграмма по статусам</p>
+          <div id="cardStatuses" class="plot"></div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-top"><h3 class="chart-title">Статусы инвойсов</h3><span class="badge must">Must Have</span></div>
+          <p class="chart-desc">Криптоэквайринг · treemap по состояниям инвойсов</p>
+          <div id="invoiceTreemap" class="plot"></div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-top"><h3 class="chart-title">Популярные пары обмена</h3><span class="badge nice">Nice to Have</span></div>
+          <p class="chart-desc">Обмен / торговля · рейтинг пар</p>
+          <div id="exchangePairs" class="plot"></div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-top"><h3 class="chart-title">Соотношение фиатных пополнений и выводов</h3><span class="badge must">Must Have</span></div>
+          <p class="chart-desc">Фиатные операции · waterfall для чистого потока</p>
+          <div id="fiatWaterfall" class="plot"></div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-top"><h3 class="chart-title">Криптооперации по валютам и сетям</h3><span class="badge must">Must Have</span></div>
+          <p class="chart-desc">Криптооперации · поток → сеть → токен</p>
+          <div id="cryptoSunburst" class="plot"></div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-top"><h3 class="chart-title">AML-структура проверок</h3><span class="badge must">Must Have</span></div>
+          <p class="chart-desc">Операции и риск · stacked bar по статусам проверок</p>
+          <div id="amlStacked" class="plot"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="partner">
+      <div class="section-header">
+        <div>
+          <h2>Партнерская и расширенная аналитика</h2>
+          <p>Форматы для WL, B2B, когорт и реферальных сценариев</p>
+        </div>
+      </div>
+
+      <div class="grid grid-2">
+        <div class="chart-card">
+          <div class="chart-top"><h3 class="chart-title">Рейтинг WL по обороту</h3><span class="badge must">Must Have</span></div>
+          <p class="chart-desc">White Label · таблица рейтинга с вкладом и динамикой</p>
+          <div id="wlTable" class="plot"></div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-top"><h3 class="chart-title">Конверсия клиентов партнера</h3><span class="badge must">Must Have</span></div>
+          <p class="chart-desc">B2B-партнеры · grouped bar по партнерам</p>
+          <div id="b2bConversion" class="plot"></div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-top"><h3 class="chart-title">Когортное удержание</h3><span class="badge could">Could Have</span></div>
+          <p class="chart-desc">Пользователи · тепловая карта когорт</p>
+          <div id="cohortHeatmap" class="cohort-wrap">
+            <table class="cohort-table" aria-label="Когортное удержание">
+              <thead>
+                <tr><th>Когорта</th><th>M0</th><th>M1</th><th>M2</th><th>M3</th><th>M4</th><th>M5</th></tr>
+              </thead>
+              <tbody>
+                <tr><th>Янв</th><td style="background:#7a5af8;color:#fff;">100%</td><td style="background:#a796ff;">72%</td><td style="background:#c5b5ff;">58%</td><td style="background:#ded6ff;">44%</td><td style="background:#e8e3ff;">38%</td><td style="background:#f0edff;">32%</td></tr>
+                <tr><th>Фев</th><td style="background:#7a5af8;color:#fff;">100%</td><td style="background:#b0a1ff;">68%</td><td style="background:#d0c3ff;">52%</td><td style="background:#ddd5ff;">45%</td><td style="background:#ebe7ff;">36%</td><td class="empty">-</td></tr>
+                <tr><th>Мар</th><td style="background:#7a5af8;color:#fff;">100%</td><td style="background:#aa9aff;">70%</td><td style="background:#c8b9ff;">56%</td><td style="background:#d9d0ff;">48%</td><td class="empty">-</td><td class="empty">-</td></tr>
+                <tr><th>Апр</th><td style="background:#7a5af8;color:#fff;">100%</td><td style="background:#b5a7ff;">66%</td><td style="background:#d2c7ff;">50%</td><td class="empty">-</td><td class="empty">-</td><td class="empty">-</td></tr>
+                <tr><th>Май</th><td style="background:#7a5af8;color:#fff;">100%</td><td style="background:#beb1ff;">62%</td><td class="empty">-</td><td class="empty">-</td><td class="empty">-</td><td class="empty">-</td></tr>
+                <tr><th>Июн</th><td style="background:#7a5af8;color:#fff;">100%</td><td class="empty">-</td><td class="empty">-</td><td class="empty">-</td><td class="empty">-</td><td class="empty">-</td></tr>
+              </tbody>
+            </table>
+            <p class="cohort-note">Чем насыщеннее ячейка, тем выше удержание пользователей когорты в выбранный месяц</p>
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-top"><h3 class="chart-title">Воронка реферала</h3><span class="badge nice">Nice to Have</span></div>
+          <p class="chart-desc">Реферальная система · воронка до выплаты бонуса</p>
+          <div id="referralFunnel" class="funnel-wrap">
+            <div class="funnel-step" style="width:96%; background:#1f6feb;"><span class="step-label">Переход по ссылке <span class="step-value">100%</span></span></div>
+            <div class="funnel-step" style="width:64%; background:#2b7be8;"><span class="step-label">Регистрация <span class="step-value">64%</span></span></div>
+            <div class="funnel-step" style="width:48%; background:#7a5af8;"><span class="step-label">KYC / активация <span class="step-value">42%</span></span></div>
+            <div class="funnel-step" style="width:34%; background:#12b76a;"><span class="step-label">Целевое действие <span class="step-value">25%</span></span></div>
+            <div class="funnel-step" style="width:25%; background:#f79009;"><span class="step-label">Бонус выплачен <span class="step-value">18%</span></span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+<script>
+const config = {responsive: true, displayModeBar: false};
+const font = {family: 'Inter, Arial, sans-serif', color: '#111827'};
+const colors = {blue:'#1f6feb', green:'#12b76a', amber:'#f79009', red:'#f04438', purple:'#7a5af8', gray:'#98a2b3'};
+const layoutBase = {
+  paper_bgcolor: 'white',
+  plot_bgcolor: 'white',
+  font,
+  margin: {l: 42, r: 24, t: 22, b: 48},
+  xaxis: {gridcolor: '#eef1f5', zerolinecolor: '#eef1f5'},
+  yaxis: {gridcolor: '#eef1f5', zerolinecolor: '#eef1f5'}
+};
+const geoBase = {projection:{type:'natural earth'}, showframe:false, showcoastlines:true, coastlinecolor:'#d9e0ea', showcountries:true, countrycolor:'#ffffff', showland:true, landcolor:'#f3f4f6', showocean:true, oceancolor:'#fbfcff', bgcolor:'#ffffff'};
+
+function mapColors(color) {
+  return [[0,'#f7f8fa'],[.5,color === colors.blue ? '#9fc3ff' : color === colors.green ? '#8ee3bd' : color === colors.purple ? '#c5b5ff' : color === colors.red ? '#fecdca' : '#fedf89'],[1,color]];
+}
+
+const months = ['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг'];
+Plotly.newPlot('turnoverRevenue', [
+  {type:'scatter', mode:'lines+markers', name:'Оборот', x:months, y:[42,48,53,50,61,70,73,82], line:{color:colors.blue, width:3}, fill:'tozeroy', fillcolor:'rgba(31,111,235,.08)', hovertemplate:'Оборот: %{y}<extra></extra>'},
+  {type:'scatter', mode:'lines+markers', name:'Выручка', x:months, y:[8,9,12,11,14,16,19,21], line:{color:colors.green, width:3}, hovertemplate:'Выручка: %{y}<extra></extra>'}
+], {...layoutBase, legend:{orientation:'h', x:0, y:1.14}, margin:{l:42,r:20,t:28,b:40}}, config);
+
+
+Plotly.newPlot('firstProductSankey', [{
+  type:'sankey', arrangement:'snap',
+  node:{pad:18, thickness:15, line:{color:'#e8ebef', width:1}, label:['Новые пользователи','KYC одобрен','Без KYC','Обмен','Карты','Криптооперации','Криптоэквайринг','WL / B2B'], color:[colors.gray,colors.green,colors.amber,colors.blue,colors.purple,colors.green,colors.amber,colors.gray]},
+  link:{source:[0,0,1,1,1,1,1,2], target:[1,2,3,4,5,6,7,5], value:[76,24,25,16,20,9,6,8], color:['rgba(18,183,106,.16)','rgba(247,144,9,.16)','rgba(31,111,235,.15)','rgba(122,90,248,.15)','rgba(18,183,106,.15)','rgba(247,144,9,.15)','rgba(152,162,179,.18)','rgba(18,183,106,.10)']},
+  hovertemplate:'%{source.label} → %{target.label}<extra></extra>'
+}], {...layoutBase, margin:{l:10,r:10,t:10,b:10}}, config);
+
+Plotly.newPlot('geoActivity', [{
+  type:'choropleth', locationmode:'ISO-3',
+  locations:['RUS','GBR','ARE','TUR','DEU','KAZ','GEO','ARM','THA','IDN','BRA','USA'],
+  z:[72,48,68,57,44,63,52,50,38,36,42,46],
+  text:['Россия','Великобритания','ОАЭ','Турция','Германия','Казахстан','Грузия','Армения','Таиланд','Индонезия','Бразилия','США'],
+  colorscale:mapColors(colors.blue), marker:{line:{color:'#fff', width:.7}},
+  colorbar:{title:{text:'активность', side:'top'}, thickness:12, len:.72, outlinewidth:0, tickvals:[30,55,80], ticktext:['Низко','Средне','Высоко'], tickfont:{size:11,color:'#667085'}, titlefont:{size:11,color:'#667085'}},
+  hovertemplate:'<b>%{text}</b><br>уровень активности: %{z}<extra></extra>'
+}], {...layoutBase, geo:geoBase, margin:{l:0,r:0,t:0,b:0}}, config);
+
+Plotly.newPlot('revenueDonut', [{
+  type:'pie', hole:.64,
+  labels:['Обмен','Карты','Криптоэквайринг','Фиат','Криптооперации','WL / B2B'],
+  values:[30,22,18,12,10,8],
+  marker:{colors:[colors.blue,colors.purple,colors.green,colors.amber,colors.red,colors.gray]},
+  textinfo:'label+percent', hovertemplate:'%{label}: %{percent}<extra></extra>'
+}], {...layoutBase, margin:{l:20,r:20,t:10,b:10}, showlegend:false}, config);
+
+Plotly.newPlot('productUsageBar', [{
+  type:'bar', orientation:'h',
+  y:['Обмен','Криптооперации','Карты','Фиатные операции','Криптоэквайринг','WL / B2B'],
+  x:[82,76,64,58,43,37],
+  marker:{color:[colors.blue,colors.green,colors.purple,colors.amber,colors.green,colors.gray]},
+  hovertemplate:'%{y}<extra></extra>'
+}], {...layoutBase, margin:{l:150,r:24,t:20,b:36}, xaxis:{showticklabels:false, showgrid:false, zeroline:false}, yaxis:{autorange:'reversed'}}, config);
+
+
+Plotly.newPlot('growthBubble', [{
+  type:'scatter', mode:'markers+text',
+  x:[76,62,55,42,35,28], y:[22,18,28,12,9,7],
+  text:['Обмен','Карты','Эквайринг','Фиат','Крипто','B2B'], textposition:'top center',
+  marker:{size:[46,38,42,30,28,26], color:[colors.blue,colors.purple,colors.green,colors.amber,colors.red,colors.gray], opacity:.78, line:{color:'#ffffff', width:2}},
+  hovertemplate:'%{text}<extra></extra>'
+}], {...layoutBase, xaxis:{title:'выручка', gridcolor:'#eef1f5'}, yaxis:{title:'рост', gridcolor:'#eef1f5'}, shapes:[{type:'line',x0:50,x1:50,y0:0,y1:35,line:{color:'#e8ebef',dash:'dot'}},{type:'line',x0:0,x1:90,y0:15,y1:15,line:{color:'#e8ebef',dash:'dot'}}], margin:{l:55,r:25,t:20,b:50}}, config);
+
+Plotly.newPlot('cardStatuses', [
+  {type:'bar', name:'Активные', x:months, y:[38,42,46,51,56,61,65,70], marker:{color:colors.green}},
+  {type:'bar', name:'В обработке', x:months, y:[8,7,10,9,8,11,9,10], marker:{color:colors.amber}},
+  {type:'bar', name:'Заблокированы', x:months, y:[3,4,5,5,6,6,7,7], marker:{color:colors.red}}
+], {...layoutBase, barmode:'stack', legend:{orientation:'h', x:0, y:1.14}, margin:{l:42,r:20,t:30,b:40}}, config);
+
+Plotly.newPlot('invoiceTreemap', [{
+  type:'treemap',
+  labels:['Инвойсы','Оплачены','Частично оплачены','Ожидают оплаты','Истекли','Отменены','Через API','Через виджет','Ручные'],
+  parents:['','Инвойсы','Инвойсы','Инвойсы','Инвойсы','Инвойсы','Оплачены','Оплачены','Оплачены'],
+  values:[0,42,8,26,17,7,18,14,10],
+  textinfo:'label+value',
+  marker:{colors:['#fff',colors.green,colors.amber,colors.blue,colors.gray,colors.red,colors.green,colors.green,colors.green]},
+  hovertemplate:'%{label}: %{value}<extra></extra>'
+}], {...layoutBase, margin:{l:10,r:10,t:10,b:10}}, config);
+
+Plotly.newPlot('exchangePairs', [{
+  type:'bar',
+  x:['USDT/RUB','BTC/USDT','ETH/USDT','USDT/EUR','TON/USDT','SOL/USDT'],
+  y:[72,58,44,38,31,24],
+  marker:{color:[colors.blue,colors.green,colors.purple,colors.amber,colors.red,colors.gray]},
+  hovertemplate:'%{x}<extra></extra>'
+}], {...layoutBase, margin:{l:42,r:20,t:20,b:78}, xaxis:{tickangle:-35, gridcolor:'#eef1f5'}, yaxis:{showticklabels:false, gridcolor:'#eef1f5'}}, config);
+
+Plotly.newPlot('fiatWaterfall', [{
+  type:'waterfall', orientation:'v',
+  measure:['relative','relative','relative','total'],
+  x:['Пополнения','Выводы','Комиссии','Чистый поток'],
+  y:[85,-62,4,27],
+  connector:{line:{color:'#d0d5dd'}},
+  increasing:{marker:{color:colors.green}}, decreasing:{marker:{color:colors.red}}, totals:{marker:{color:colors.blue}},
+  hovertemplate:'%{x}: %{y}<extra></extra>'
+}], {...layoutBase, margin:{l:48,r:20,t:20,b:50}}, config);
+
+Plotly.newPlot('cryptoSunburst', [{
+  type:'sunburst',
+  ids:[
+    'root',
+    'dep','dep_tron','dep_tron_usdt','dep_tron_usdc','dep_eth','dep_eth_usdt','dep_eth_eth','dep_eth_usdc','dep_ton','dep_ton_ton','dep_ton_usdt','dep_btc','dep_btc_btc','dep_sol','dep_sol_sol','dep_sol_usdt',
+    'wd','wd_tron','wd_tron_usdt','wd_tron_usdc','wd_eth','wd_eth_usdt','wd_eth_eth','wd_ton','wd_ton_ton','wd_ton_usdt','wd_btc','wd_btc_btc','wd_sol','wd_sol_sol'
+  ],
+  labels:[
+    'Криптооперации',
+    'Пополнения','TRON','USDT','USDC','Ethereum','USDT','ETH','USDC','TON','TON','USDT','Bitcoin','BTC','Solana','SOL','USDT',
+    'Выводы','TRON','USDT','USDC','Ethereum','USDT','ETH','TON','TON','USDT','Bitcoin','BTC','Solana','SOL'
+  ],
+  parents:[
+    '',
+    'root','dep','dep_tron','dep_tron','dep','dep_eth','dep_eth','dep_eth','dep','dep_ton','dep_ton','dep','dep_btc','dep','dep_sol','dep_sol',
+    'root','wd','wd_tron','wd_tron','wd','wd_eth','wd_eth','wd','wd_ton','wd_ton','wd','wd_btc','wd','wd_sol'
+  ],
+  values:[
+    100,
+    58,26,24,2,16,10,4,2,8,7,1,5,5,3,2,1,
+    42,22,20,2,9,6,3,5,4,1,4,4,2,2
+  ],
+  branchvalues:'total',
+  textinfo:'label',
+  marker:{colors:[
+    '#ffffff',
+    '#ecfdf3','#d1fadf',colors.green,'#8ee3bd','#d8e8ff',colors.blue,'#9fc3ff','#bfd7ff','#f4f3ff',colors.purple,'#c5b5ff','#fffaeb',colors.amber,'#fff1f1',colors.red,'#fecdca',
+    '#eef5ff','#d8e8ff',colors.blue,'#9fc3ff','#f4f3ff',colors.purple,'#c5b5ff','#fffaeb',colors.amber,'#fedf89','#ecfdf3',colors.green,'#fff1f1',colors.red
+  ]},
+  hovertemplate:'%{label}: %{value}<extra></extra>'
+}], {...layoutBase, margin:{l:10,r:10,t:10,b:10}}, config);
+
+Plotly.newPlot('amlStacked', [
+  {type:'bar', name:'Авто-одобрено', x:months, y:[48,52,50,56,60,58,62,64], marker:{color:colors.green}},
+  {type:'bar', name:'Ручная проверка', x:months, y:[14,16,18,17,15,19,20,18], marker:{color:colors.amber}},
+  {type:'bar', name:'Заблокировано', x:months, y:[4,5,5,6,7,6,8,7], marker:{color:colors.red}}
+], {...layoutBase, barmode:'stack', legend:{orientation:'h', x:0, y:1.14}, margin:{l:42,r:20,t:30,b:40}}, config);
+
+Plotly.newPlot('wlTable', [{
+  type:'table',
+  header:{values:['WL-контур','Пользователи','Оборот','Комиссия','Тренд'], fill:{color:'#f7f8fa'}, align:'left', line:{color:'#e8ebef'}, font:{color:'#344054', size:12}},
+  cells:{values:[['WL Alpha','WL Beta','WL Gamma','WL Delta','WL Sigma'],['Высоко','Средне','Средне','Низко','Низко'],['Высокий','Высокий','Средний','Средний','Низкий'],['Высокая','Средняя','Средняя','Низкая','Низкая'],['↑ рост','↑ рост','→ стабильно','↓ спад','→ стабильно']], fill:{color:'#ffffff'}, align:'left', line:{color:'#e8ebef'}, height:34, font:{color:'#111827', size:12}}
+}], {...layoutBase, margin:{l:10,r:10,t:10,b:10}}, config);
+
+Plotly.newPlot('b2bConversion', [
+  {type:'bar', name:'Созданы клиенты', x:['Партнер A','Партнер B','Партнер C','Партнер D'], y:[80,65,48,36], marker:{color:colors.blue}},
+  {type:'bar', name:'Первая операция', x:['Партнер A','Партнер B','Партнер C','Партнер D'], y:[42,30,28,11], marker:{color:colors.green}}
+], {...layoutBase, barmode:'group', legend:{orientation:'h', x:0, y:1.14}, margin:{l:42,r:20,t:30,b:60}, xaxis:{tickangle:-20}}, config);
+
+</script>
+</body>
+</html>
