@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Analytics - Admin Panel</title>
+  <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
+  <style>
+    :root{
+      --bg:#f5f6f8;
+      --surface:#ffffff;
+      --surface-2:#fbfbfc;
+      --border:#e7e9ee;
+      --text:#16181d;
+      --muted:#6b7280;
+      --blue:#3b82f6;
+      --blue-2:#eaf2ff;
+      --green:#18a46b;
+      --red:#dc4c3f;
+      --amber:#d99124;
+      --purple:#7c5cff;
+      --shadow:0 10px 28px rgba(16,24,40,.05);
+      --radius:16px;
+      --radius-sm:12px;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;color:var(--text)}
+    .app{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+    .sidebar{background:#fff;border-right:1px solid var(--border);padding:14px 12px;position:sticky;top:0;height:100vh;overflow:auto}
+    .brand{height:46px;border-radius:14px;background:var(--blue-2);display:flex;align-items:center;padding:0 14px;font-weight:700;color:var(--blue);font-size:14px;margin-bottom:14px}
+    .menu-block{margin-bottom:8px}
+    .menu-link,.menu-toggle,.sub-link,.sub-toggle{width:100%;border:0;background:transparent;display:flex;align-items:center;gap:10px;text-align:left;padding:10px 12px;border-radius:12px;color:#2c3645;font-size:13px;cursor:pointer}
+    .menu-link:hover,.menu-toggle:hover,.sub-link:hover,.sub-toggle:hover{background:#f6f8fb}
+    .menu-link.active,.sub-link.active,.menu-toggle.active,.sub-toggle.active{background:var(--blue-2);color:var(--blue);font-weight:600}
+    .icon{width:16px;height:16px;border-radius:5px;border:1.5px solid #97a2b3;display:inline-flex;align-items:center;justify-content:center;font-size:9px;color:#97a2b3;flex:0 0 auto}
+    .menu-link.active .icon,.sub-link.active .icon,.menu-toggle.active .icon,.sub-toggle.active .icon{border-color:var(--blue);color:var(--blue)}
+    .arrow{margin-left:auto;font-size:11px;color:#98a2b3;transition:.2s transform}
+    .open>.menu-toggle .arrow,.open>.sub-toggle .arrow{transform:rotate(180deg)}
+    .submenu{display:none;padding-left:14px;margin-top:4px;border-left:1px solid #eef0f4;margin-left:18px}
+    .open>.submenu{display:block}
+    .sub-link,.sub-toggle{padding:9px 10px;font-size:12.5px;border-radius:10px}
+    .sub-link.later{border:1px dashed #d5dae3;color:#98a2b3;background:#fafbfc}
+    .sub-link.later:hover{background:#fafbfc}
+    .content{padding:20px 24px 36px;min-width:0}
+    .page-title{font-size:22px;font-weight:700;letter-spacing:-.02em;margin:0 0 14px}
+    .filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+    .page-filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+    .filter{height:36px;border:1px solid var(--border);border-radius:10px;background:#fff;padding:0 12px;font-size:12px;color:#344054;outline:none}
+    .filter-label{height:36px;display:inline-flex;align-items:center;color:#98a2b3;font-size:11px}
+    .section{margin-bottom:18px}
+    .section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+    .section-title{font-size:16px;font-weight:650;margin:0}
+    .link-btn{border:1px solid var(--border);background:#fff;border-radius:10px;padding:8px 10px;font-size:12px;color:#344054;cursor:pointer}
+    .link-btn:hover{background:#f8fafc}
+    .kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}
+    .kpi-card,.chart-card,.mini-card,.placeholder-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
+    .kpi-card{padding:14px 15px;position:relative;min-height:112px;overflow:hidden}
+    .kpi-label{font-size:11px;color:var(--muted);margin-bottom:10px}
+    .kpi-value{font-size:24px;font-weight:760;line-height:1;letter-spacing:-.04em;margin-bottom:8px}
+    .kpi-foot{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--muted)}
+    .trend{font-weight:700}
+    .trend.up{color:var(--green)} .trend.down{color:var(--red)} .trend.flat{color:var(--amber)}
+    .spark{position:absolute;right:10px;bottom:10px;width:86px;height:30px;opacity:.9}
+    .kpi-mini{position:absolute;right:10px;bottom:10px;width:88px;height:34px;opacity:.9}
+    .kpi-ring{width:34px;height:34px;border-radius:50%;background:conic-gradient(currentColor 0 65%,#eef2f6 65% 100%);opacity:.8}
+    .kpi-bars{display:flex;align-items:flex-end;gap:4px;justify-content:flex-end}
+    .kpi-bars i{display:block;width:8px;border-radius:4px;background:currentColor;opacity:.85}
+    .kpi-bars i:nth-child(1){height:12px}.kpi-bars i:nth-child(2){height:22px}.kpi-bars i:nth-child(3){height:16px}.kpi-bars i:nth-child(4){height:28px}.kpi-bars i:nth-child(5){height:20px}
+    .kpi-stack{display:grid;grid-template-columns:1fr 1fr;gap:4px;align-content:end}
+    .kpi-stack i{display:block;height:12px;border-radius:5px;background:currentColor;opacity:.75}
+    .kpi-stack i:nth-child(2){opacity:.45}.kpi-stack i:nth-child(3){opacity:.6}.kpi-stack i:nth-child(4){opacity:.3}
+    .grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+    .chart-card{padding:14px 14px 8px;min-height:320px}
+    .chart-card.wide{grid-column:1 / -1}
+    .chart-card .title-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
+    .chart-title{font-size:13px;font-weight:650;margin:0}
+    .plot{height:255px;width:100%}
+    .plot.tall{height:300px}
+    .chart-card.wide .plot{height:300px}
+    .switches{display:flex;gap:6px;flex-wrap:wrap;align-items:center;justify-content:flex-end}
+    .switch{border:1px solid var(--border);background:#fff;padding:0 10px;border-radius:999px;font-size:11px;cursor:pointer;color:#344054;height:32px;min-width:74px;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;line-height:1}
+    .switch.active{background:#111827;color:#fff;border-color:#111827}
+    .switch.icon-only{width:34px;min-width:34px;height:32px;padding:0;display:inline-flex;align-items:center;justify-content:center}
+    .chart-icon{width:16px;height:16px;display:inline-flex;position:relative;flex:0 0 16px;vertical-align:middle}
+    .chart-icon.bar{align-items:flex-end;gap:2px}
+    .chart-icon.bar i{display:block;width:3px;border-radius:2px;background:currentColor}
+    .chart-icon.bar i:nth-child(1){height:8px}.chart-icon.bar i:nth-child(2){height:13px}.chart-icon.bar i:nth-child(3){height:10px}.chart-icon.bar i:nth-child(4){height:16px}
+    .chart-icon.donut{border:3px solid currentColor;border-radius:50%}
+    .chart-icon.donut:after{content:"";position:absolute;inset:3px;background:currentColor;border-radius:50%;opacity:.18}
+    .mini-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+    .mini-card{padding:14px;display:flex;flex-direction:column;gap:12px}
+    .mini-top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .mini-title{font-size:14px;font-weight:650;margin:0}
+    .mini-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+    .mini-kpi{background:var(--surface-2);border:1px solid #eff2f6;border-radius:12px;padding:10px}
+    .mini-kpi .label{font-size:10px;color:var(--muted);margin-bottom:6px}
+    .mini-kpi .value{font-size:18px;font-weight:730;letter-spacing:-.03em}
+    .mini-plot{height:170px}
+    .mini-actions{display:flex;justify-content:flex-end}
+    .placeholder-card{border-style:dashed;padding:16px;color:#98a2b3;display:flex;align-items:center;justify-content:center;min-height:96px;font-size:12px}
+    .funnel-box{height:255px;width:100%}
+    .funnel-step{height:42px;margin:8px auto;border-radius:10px;color:#fff;font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center}
+    .tag{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;background:#f3f5f8;font-size:11px;color:#667085}
+    @media (max-width:1280px){
+      .app{grid-template-columns:230px 1fr}
+      .kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .grid-2,.mini-grid{grid-template-columns:1fr}
+    }
+    @media (max-width:820px){
+      .app{grid-template-columns:1fr}
+      .sidebar{position:static;height:auto}
+      .content{padding:16px}
+      .kpi-grid{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">Admin Panel</div>
+
+    <div class="menu-block"><button class="menu-link"><span class="icon">•</span>Пользователи</button></div>
+    <div class="menu-block"><button class="menu-link"><span class="icon">•</span>Операции</button></div>
+    <div class="menu-block"><button class="menu-link"><span class="icon">•</span>Настройки</button></div>
+    <div class="menu-block"><button class="menu-link"><span class="icon">•</span>Группы пользователей</button></div>
+    <div class="menu-block"><button class="menu-link"><span class="icon">•</span>Займы White Label</button></div>
+    <div class="menu-block"><button class="menu-link"><span class="icon">•</span>Исполнители платежей</button></div>
+    <div class="menu-block"><button class="menu-link"><span class="icon">•</span>Клиринг</button></div>
+
+    <div class="menu-block open" id="analytics-root">
+      <button class="menu-toggle active" data-root-page="overview"><span class="icon">•</span>Аналитика <span class="arrow">⌃</span></button>
+      <div class="submenu">
+        <button class="sub-link" data-page="users"><span class="icon">•</span>Пользователи</button>
+        <div class="submenu" style="display:block">
+          <button class="sub-link later" data-page="referrals"><span class="icon">•</span>Реферальная система</button>
+        </div>
+
+        <div class="menu-block open">
+          <button class="sub-toggle"><span class="icon">•</span>Продукты <span class="arrow">⌃</span></button>
+          <div class="submenu">
+            <button class="sub-link" data-page="products"><span class="icon">•</span>Обзор продуктов</button>
+            <button class="sub-link" data-page="cards"><span class="icon">•</span>Карты</button>
+            <button class="sub-link" data-page="acquiring"><span class="icon">•</span>Криптоэквайринг</button>
+            <button class="sub-link" data-page="exchange"><span class="icon">•</span>Обмен / торговля</button>
+            <button class="sub-link later" data-page="p2p"><span class="icon">•</span>P2P / OTC</button>
+            <button class="sub-link later" data-page="investments"><span class="icon">•</span>Инвестиции</button>
+            <button class="sub-link later" data-page="loans"><span class="icon">•</span>Займы и вклады</button>
+          </div>
+        </div>
+
+        <div class="menu-block open">
+          <button class="sub-toggle"><span class="icon">•</span>WL и партнеры <span class="arrow">⌃</span></button>
+          <div class="submenu">
+            <button class="sub-link" data-page="wl"><span class="icon">•</span>White Label</button>
+            <button class="sub-link" data-page="b2b"><span class="icon">•</span>B2B-партнеры</button>
+            <button class="sub-link later" data-page="clearing"><span class="icon">•</span>Клиринг</button>
+          </div>
+        </div>
+
+        <div class="menu-block open">
+          <button class="sub-toggle"><span class="icon">•</span>Операции и риск <span class="arrow">⌃</span></button>
+          <div class="submenu">
+            <button class="sub-link" data-page="kyc"><span class="icon">•</span>KYC / AML</button>
+            <button class="sub-link" data-page="fiat"><span class="icon">•</span>Фиатные операции</button>
+            <button class="sub-link" data-page="crypto"><span class="icon">•</span>Криптооперации</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="menu-block"><button class="menu-link"><span class="icon">•</span>Админы</button></div>
+    <div class="menu-block"><button class="menu-link"><span class="icon">•</span>OpenAPI</button></div>
+  </aside>
+
+  <main class="content">
+    <h1 class="page-title" id="pageTitle">Аналитика</h1>
+    <div class="filters" id="globalFilters">
+      <select class="filter" id="periodFilter">
+        <option value="month">Период: месяц</option>
+        <option value="quarter">Период: квартал</option>
+        <option value="year">Период: год</option>
+      </select>
+      <select class="filter" id="wlFilter">
+        <option value="all">WL: все</option>
+        <option value="core">WL: Core</option>
+        <option value="alpha">WL: Alpha</option>
+        <option value="nova">WL: Nova</option>
+      </select>
+      <select class="filter" id="dateFilter">
+        <option value="30">Дата и время: 30 дней</option>
+        <option value="90">Дата и время: 90 дней</option>
+        <option value="365">Дата и время: 365 дней</option>
+      </select>
+    </div>
+    <div class="page-filters" id="pageFilters"></div>
+    <div id="content"></div>
+  </main>
+</div>
+
+<script>
+const plotCfg = {responsive:true, displayModeBar:false};
+const font = {family:'Inter, Arial, sans-serif', color:'#16181d'};
+const colors = {blue:'#3b82f6', green:'#18a46b', red:'#dc4c3f', amber:'#d99124', purple:'#7c5cff', gray:'#94a3b8', dark:'#111827'};
+const state = {
+  page:'overview',
+  period:'month',
+  wl:'all',
+  date:'30',
+  currency:'usd',
+  custom:{},
+  modes:{}
+};
+const multPeriod = {month:0.36, quarter:0.74, year:1};
+const multWL = {all:1, core:.52, alpha:.31, nova:.17};
+const multDate = {'30':1,'90':1.08,'365':1.18};
+const currencies = {usd:{symbol:'$', rate:1}, eur:{symbol:'€', rate:.92}, rub:{symbol:'₽', rate:90}};
+const months = ['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг'];
+
+const filterDefs = {
+  overview: [
+    ['group','Группировка','month','По месяцам','week','По неделям'],
+    ['scope','Срез','all','Все данные','wl','Только WL','direct','Прямые клиенты']
+  ],
+  users: [
+    ['account','Тип аккаунта','all','Все типы','ip','ФЛ','le','ЮЛ','external','Внешние'],
+    ['kycStatus','KYC','all','Все статусы','approved','Одобрен','pending','На проверке','declined','Отказ']
+  ],
+  products: [
+    ['productScope','Продукт','all','Все продукты','cards','Карты','acquiring','Эквайринг','exchange','Обмен'],
+    ['metric','Метрика','revenue','Выручка','turnover','Оборот','users','Пользователи']
+  ],
+  cards: [
+    ['cardStatus','Статус карты','all','Все статусы','active','Активные','progress','В обработке','blocked','Блок'],
+    ['cardNetwork','Сеть','all','Все сети','visa','Visa','mc','Mastercard']
+  ],
+  acquiring: [
+    ['invoiceStatus','Статус инвойса','all','Все статусы','paid','Оплачен','pending','Ожидание','expired','Истек'],
+    ['invoiceSource','Источник','all','Все источники','manual','Ручной','api','API','widget','Виджет']
+  ],
+  exchange: [
+    ['pair','Пара','all','Все пары','usdt-rub','USDT/RUB','btc-usdt','BTC/USDT','eth-usdt','ETH/USDT'],
+    ['orderType','Тип','all','Все типы','exchange','Быстрый обмен','trading','Торговля']
+  ],
+  wl: [
+    ['wlStatus','Статус WL','all','Все WL','active','Активные','inactive','Без активности'],
+    ['wlMetric','Метрика','turnover','Оборот','users','Пользователи','revenue','Выручка']
+  ],
+  b2b: [
+    ['partnerStatus','Статус партнера','all','Все партнеры','active','Активные','inactive','Без активности'],
+    ['integrationType','Интеграция','all','Все типы','api','API','manual','Ручная']
+  ],
+  kyc: [
+    ['checkType','Тип проверки','all','Все проверки','kyc','KYC','aml','AML'],
+    ['riskLevel','Риск','all','Все уровни','low','Низкий','medium','Средний','high','Высокий']
+  ],
+  fiat: [
+    ['fiatChannel','Канал','all','Все каналы','qr','QR / реквизиты','sbp','СБП','cash','Наличные'],
+    ['fiatDirection','Направление','all','Все','deposit','Пополнения','withdrawal','Выводы']
+  ],
+  crypto: [
+    ['cryptoDirection','Направление','all','Все','deposit','Пополнения','withdrawal','Выводы'],
+    ['cryptoNetwork','Сеть','all','Все сети','trc20','TRC20','erc20','ERC20','ton','TON']
+  ]
+};
+
+function customMultiplier(){
+  let m = 1;
+  const c = state.custom;
+  Object.values(c).forEach(v=>{
+    if(v==='all') m *= 1;
+    else if(v==='active' || v==='approved' || v==='paid' || v==='deposit') m *= .78;
+    else if(v==='inactive' || v==='declined' || v==='expired' || v==='blocked') m *= .24;
+    else m *= .56;
+  });
+  return m || 1;
+}
+function scaled(v){return v*multPeriod[state.period]*multWL[state.wl]*multDate[state.date]*customMultiplier()}
+function money(v){ return '$'+compact(scaled(v)) }
+function count(v){return compact(scaled(v))}
+function compact(v){ if(v>=1e9)return (v/1e9).toFixed(1)+'B'; if(v>=1e6)return (v/1e6).toFixed(1)+'M'; if(v>=1e3)return (v/1e3).toFixed(1)+'K'; return Math.round(v).toString() }
+function spark(values,color,area=false){ const max=Math.max(...values),min=Math.min(...values); const pts=values.map((v,i)=>{const x=i*(82/(values.length-1)); const y=28-((v-min)/((max-min)||1))*24; return `${x},${y}`}).join(' '); const fill = area ? `<polygon points="0,30 ${pts} 82,30" fill="${color}22"/>` : ''; return `<svg class="spark" viewBox="0 0 82 30">${fill}<polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2"/><line x1="0" y1="29" x2="82" y2="29" stroke="#eef2f6"/></svg>` }
+function kpiVisual(label,color){
+  const idx = Math.abs([...label].reduce((a,c)=>a+c.charCodeAt(0),0)) % 4;
+  if(idx===0) return spark([8,9,12,11,13,12,14,16], color, false);
+  if(idx===1) return `<div class="kpi-mini kpi-bars" style="color:${color}"><i></i><i></i><i></i><i></i><i></i></div>`;
+  if(idx===2) return `<div class="kpi-mini" style="color:${color};display:flex;justify-content:flex-end"><div class="kpi-ring"></div></div>`;
+  return `<div class="kpi-mini kpi-stack" style="color:${color}"><i></i><i></i><i></i><i></i></div>`;
+}
+function kpiCard(label,val,trend=''){ const tClass=trend.startsWith('+')?'up':trend.startsWith('-')?'down':'flat'; const color=tClass==='down'?colors.red:(tClass==='flat'?colors.amber:colors.blue); return `<div class="kpi-card"><div class="kpi-label">${label}</div><div class="kpi-value">${val}</div><div class="kpi-foot">${trend?`<span class="trend ${tClass}">${trend}</span>`:''}</div>${kpiVisual(label,color)}</div>` }
+function chartCard(id,title,wide=false,switches=''){ return `<div class="chart-card ${wide?'wide':''}"><div class="title-row"><h3 class="chart-title">${title}</h3>${switches?`<div class="switches">${switches}</div>`:''}</div><div id="${id}" class="plot"></div></div>` }
+function chartSwitch(key){
+  const mode = state.modes[key] || 'bar';
+  return `<button class="switch icon-only ${mode==='bar'?'active':''}" title="Столбцы" data-chart-switch="${key}" data-chart-mode="bar"><span class="chart-icon bar"><i></i><i></i><i></i><i></i></span></button><button class="switch icon-only ${mode==='donut'?'active':''}" title="Донат" data-chart-switch="${key}" data-chart-mode="donut"><span class="chart-icon donut"></span></button>`;
+}
+function miniProductCard(title,page,metrics,id){ return `<div class="mini-card"><div class="mini-top"><h3 class="mini-title">${title}</h3><span class="tag">Краткий обзор</span></div><div class="mini-kpis">${metrics.map(m=>`<div class="mini-kpi"><div class="label">${m.label}</div><div class="value">${m.value}</div></div>`).join('')}</div><div id="${id}" class="mini-plot"></div><div class="mini-actions"><button class="link-btn goto" data-target="${page}">Посмотреть полностью</button></div></div>` }
+function placeholderCard(text){ return `<div class="placeholder-card">${text}</div>` }
+function customFunnelCard(id,title,steps){ return `<div class="chart-card"><div class="title-row"><h3 class="chart-title">${title}</h3></div><div id="${id}" class="funnel-box"></div></div>` }
+
+const pages = {
+  overview:{ title:'Аналитика', render:renderOverview },
+  users:{ title:'Пользователи', render:()=>renderStandard('Пользователи', [
+    ['Всего пользователей', count(45200), '+4% к прошлой неделе'], ['Новые пользователи', count(1240), '+18% к прошлому месяцу'], ['Активные пользователи', count(12450), '+5% к прошлой неделе'], ['Верифицированные пользователи', count(28600), '+6% к прошлому периоду']
+  ], () => [
+    customFunnelCard('usersFunnel','Воронка регистрации и KYC',[['Регистрация',1240],['Email',980],['KYC',760],['Approved',610]]),
+    chartCard('usersFirstOp','Конверсия в первую операцию'),
+    chartCard('usersFirstProduct','Первый продукт пользователя', false, chartSwitch('usersFirstProduct')),
+    chartCard('usersGeo','Географический разрез активности')
+  ], drawUsersCharts) },
+  products:{ title:'Обзор продуктов', render:renderProductsOverview },
+  cards:{ title:'Карты', render:()=>renderStandard('Карты', [
+    ['Всего выпущено карт', count(8100), '+11% к прошлому месяцу'], ['Активных карт', count(5320), '+8% к прошлому месяцу'], ['Оборот по картам', money(620000), '+9% к прошлому месяцу'], ['Выручка с карт', money(18600), '+5% к прошлой неделе']
+  ], ()=>[
+    chartCard('cardsStatuses','Статусы карт', false, chartSwitch('cardsStatuses')),
+    customFunnelCard('cardsFunnel','Воронка активации карты',[['Выпуск',8100],['Пополнение',6300],['Первая транзакция',5700],['Активна 30д',5320]]),
+    chartCard('cardsMoney','Оборот и выручка по картам',true)
+  ], drawCardsCharts) },
+  acquiring:{ title:'Криптоэквайринг', render:()=>renderStandard('Криптоэквайринг', [
+    ['Созданных инвойсов', count(3200), '+13% к прошлому месяцу'], ['Инвойсов с фактом оплаты', count(2180), '-3% к прошлой неделе'], ['Объем оплаченных инвойсов', money(410000), '+14% к прошлому месяцу'], ['Активных мерчантов', count(148), '+7% к прошлому месяцу']
+  ], ()=>[
+    customFunnelCard('acqFunnel','Воронка инвойсов',[['Создано',3200],['Оплачено',2180],['Частично',280],['Истекло',740]]),
+    chartCard('acqStatuses','Статусы инвойсов', false, chartSwitch('acqStatuses')),
+    chartCard('acqMoney','Объем и выручка эквайринга',true)
+  ], drawAcqCharts) },
+  exchange:{ title:'Обмен / торговля', render:()=>renderStandard('Обмен / торговля', [
+    ['Обменов за период', count(16200), '+6% к прошлому периоду'], ['Объем обменов', money(540000), '+8% к прошлому месяцу'], ['Выручка с обменов', money(15400), '+4% к прошлой неделе'], ['Активных пользователей обмена', count(4100), '+5% к прошлой неделе']
+  ], ()=>[
+    chartCard('exchDyn','Динамика обменов'),
+    chartCard('exchPairs','Популярные пары обмена', false, chartSwitch('exchPairs')),
+    chartCard('exchMoney','Оборот и выручка обмена',true)
+  ], drawExchangeCharts) },
+  wl:{ title:'White Label', render:()=>renderStandard('White Label', [
+    ['Активных WL-контуров', count(7), '+1 за период'], ['Пользователей по WL', count(18400), '+5% к прошлой неделе'], ['Оборот по WL', money(510000), '+7% к прошлому месяцу'], ['Комиссия платформы по WL', money(18200), '+6% к прошлому периоду']
+  ], ()=>[
+    chartCard('wlUsers','Рейтинг WL по пользователям', false, chartSwitch('wlUsers')),
+    chartCard('wlTurn','Рейтинг WL по обороту', false, chartSwitch('wlTurn')),
+    chartCard('wlRev','Рейтинг WL по выручке',true)
+  ], drawWLCharts) },
+  b2b:{ title:'B2B-партнеры', render:()=>renderStandard('B2B-партнеры', [
+    ['Активных B2B-партнеров', count(11), '+2 за период'], ['Клиентов партнеров всего', count(6200), '+8% к прошлому месяцу'], ['Оборот по партнерам', money(280000), '+11% к прошлому месяцу'], ['Операций по партнерам', count(14800), '+6% к прошлому периоду']
+  ], ()=>[
+    chartCard('b2bClients','Рейтинг партнеров по клиентам', false, chartSwitch('b2bClients')),
+    chartCard('b2bTurn','Рейтинг партнеров по обороту', false, chartSwitch('b2bTurn')),
+    chartCard('b2bConv','Конверсия клиентов партнера',true)
+  ], drawB2BCharts) },
+  kyc:{ title:'KYC / AML', render:()=>renderStandard('KYC / AML', [
+    ['KYC-заявок на проверке', count(220), '-3% к прошлой неделе'], ['Отказов KYC', count(64), '-2% к прошлому месяцу'], ['Ручных AML-проверок', count(380), '-4% к прошлой неделе'], ['Операций в обработке', count(840), '-2% к прошлой неделе']
+  ], ()=>[
+    customFunnelCard('kycFunnel','Воронка KYC',[['Старт',1240],['Документы',760],['Проверка',220],['Одобрено',610]]),
+    chartCard('amlStruct','AML-структура проверок', false, chartSwitch('amlStruct')),
+    chartCard('opsTypes','Операции в обработке по типам',true)
+  ], drawKYCCharts) },
+  fiat:{ title:'Фиатные операции', render:()=>renderStandard('Фиатные операции', [
+    ['Фиатных пополнений', count(5300), '+7% к прошлому месяцу'], ['Объем фиатных пополнений', money(360000), '+9% к прошлому месяцу'], ['Фиатных выводов', count(3100), '-5% к прошлой неделе'], ['Объем фиатных выводов', money(245000), '+5% к прошлой неделе']
+  ], ()=>[
+    chartCard('fiatDep','Динамика фиатных пополнений'),
+    chartCard('fiatWd','Динамика фиатных выводов'),
+    chartCard('fiatFlow','Соотношение пополнений и выводов',true)
+  ], drawFiatCharts) },
+  crypto:{ title:'Криптооперации', render:()=>renderStandard('Криптооперации', [
+    ['Криптопополнений', count(6800), '+8% к прошлому месяцу'], ['Объем криптопополнений', money(690000), '+10% к прошлому периоду'], ['Криптовыводов', count(4200), '-4% к прошлой неделе'], ['Объем криптовыводов', money(470000), '+7% к прошлому месяцу']
+  ], ()=>[
+    chartCard('cryptoDep','Динамика криптопополнений'),
+    chartCard('cryptoWd','Динамика криптовыводов'),
+    chartCard('cryptoCurr','Криптооперации по валютам и сетям',true, `<button class="switch icon-only active" title="Иерархия" data-crypto-view="sunburst"><span class="chart-icon donut"></span></button><button class="switch" title="Столбцы по валютам" data-crypto-view="curr"><span class="chart-icon bar"><i></i><i></i><i></i><i></i></span><span>Валюты</span></button><button class="switch" title="Столбцы по сетям" data-crypto-view="network"><span class="chart-icon bar"><i></i><i></i><i></i><i></i></span><span>Сети</span></button>`)
+  ], drawCryptoCharts) },
+  referrals:{title:'Реферальная система', render:()=>renderLater('Раздел следующего этапа')},
+  p2p:{title:'P2P / OTC', render:()=>renderLater('Раздел следующего этапа')},
+  investments:{title:'Инвестиции', render:()=>renderLater('Раздел следующего этапа')},
+  loans:{title:'Займы и вклады', render:()=>renderLater('Раздел следующего этапа')},
+  clearing:{title:'Клиринг', render:()=>renderLater('Раздел следующего этапа')}
+};
+
+function renderPageFilters(){
+  const defs = filterDefs[state.page] || filterDefs.overview;
+  pageFilters.innerHTML = `<span class="filter-label">Фильтры раздела:</span>` + defs.map(def=>{
+    const [key,label,...opts] = def;
+    if(!state.custom[key]) state.custom[key] = opts[0];
+    let html = `<select class="filter page-filter" data-filter-key="${key}"><option value="${opts[0]}">${label}: ${opts[1]}</option>`;
+    for(let i=2;i<opts.length;i+=2) html += `<option value="${opts[i]}" ${state.custom[key]===opts[i]?'selected':''}>${label}: ${opts[i+1]}</option>`;
+    html += `</select>`;
+    return html;
+  }).join('');
+  document.querySelectorAll('.page-filter').forEach(sel=>{
+    sel.onchange=()=>{ state.custom[sel.dataset.filterKey]=sel.value; renderPage(); };
+  });
+}
+function renderLater(text){
+  content.innerHTML = `<div class="placeholder-card" style="min-height:260px;font-size:14px">${text}</div>`;
+}
+function renderStandard(title, cards, chartsFactory, drawFn){
+  renderPageFilters();
+  content.innerHTML = `
+    <section class="section">
+      <div class="kpi-grid">${cards.map(c=>kpiCard(c[0],c[1],c[2])).join('')}</div>
+    </section>
+    <section class="section">
+      <div class="grid-2">${chartsFactory().join('')}</div>
+    </section>`;
+  bindGoto();
+  bindChartSwitches();
+  drawFn();
+}
+
+function renderOverview(){
+  renderPageFilters();
+  content.innerHTML = `
+    <section class="section">
+      <div class="kpi-grid">
+        ${kpiCard('Общий оборот платформы', money(2400000), '+12% к прошлому месяцу')}
+        ${kpiCard('Общая выручка платформы', money(84000), '+7% к прошлому месяцу')}
+        ${kpiCard('Активные пользователи', count(12450), '+5% к прошлой неделе')}
+        ${kpiCard('Операций за период', count(89200), '+9% к прошлому месяцу')}
+      </div>
+      <div class="grid-2">
+        ${chartCard('ovrMoney','Динамика оборота и выручки')}
+        ${chartCard('ovrProducts','Структура выручки по продуктам', false, `<button class="switch active" data-overview-structure="revenue">Выручка</button><button class="switch" data-overview-structure="turnover">Оборот</button><button class="switch icon-only" title="Донат" data-overview-structure="donut"><span class="chart-icon donut"></span></button>`)}
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head"><h2 class="section-title">Продукты</h2></div>
+      <div class="kpi-grid">
+        ${kpiCard('Активных продуктов', count(5), '')}
+        ${kpiCard('Активных пользователей продуктов', count(9800), '+6% к прошлому периоду')}
+        ${kpiCard('Оборот по продуктам', money(1870000), '+10% к прошлому периоду')}
+        ${kpiCard('Выручка по продуктам', money(67600), '+8% к прошлому месяцу')}
+      </div>
+      <div class="mini-grid">
+        ${miniProductCard('Карты','cards',[{label:'Активные карты',value:count(5320)},{label:'Выручка',value:money(18600)}],'miniCards')}
+        ${miniProductCard('Криптоэквайринг','acquiring',[{label:'Оплаченные инвойсы',value:count(2180)},{label:'Мерчанты',value:count(148)}],'miniAcq')}
+        ${miniProductCard('Обмен / торговля','exchange',[{label:'Объем',value:money(540000)},{label:'Выручка',value:money(15400)}],'miniExchange')}
+        ${placeholderCard('P2P / OTC - следующий этап')}
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head"><h2 class="section-title">WL и партнеры</h2></div>
+      <div class="kpi-grid">
+        ${kpiCard('Активных WL-контуров', count(7), '+1 за период')}
+        ${kpiCard('Активных B2B-партнеров', count(11), '+2 за период')}
+        ${kpiCard('Оборот WL и партнеров', money(790000), '+9% к прошлому месяцу')}
+        ${kpiCard('Комиссия платформы', money(27200), '+6% к прошлому периоду')}
+      </div>
+      <div class="grid-2">
+        ${chartCard('ovrWL','Рейтинг WL по обороту')}
+        ${chartCard('ovrB2B','Рейтинг партнеров по обороту')}
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head"><h2 class="section-title">Операции и риск</h2></div>
+      <div class="kpi-grid">
+        ${kpiCard('KYC-заявок на проверке', count(220), '-3% к прошлой неделе')}
+        ${kpiCard('Ручных AML-проверок', count(380), '-4% к прошлой неделе')}
+        ${kpiCard('Фиатных пополнений', count(5300), '+7% к прошлому месяцу')}
+        ${kpiCard('Криптопополнений', count(6800), '+8% к прошлому месяцу')}
+      </div>
+      <div class="grid-2">
+        ${chartCard('ovrRiskFunnel','Воронка KYC')}
+        ${chartCard('ovrFlows','Фиатные и криптооперации')}
+      </div>
+    </section>`;
+  bindGoto();
+  drawOverviewCharts();
+}
+
+function renderProductsOverview(){
+  renderPageFilters();
+  content.innerHTML = `
+    <section class="section">
+      <div class="kpi-grid">
+        ${kpiCard('Активных продуктов', count(5), '')}
+        ${kpiCard('Активных пользователей продуктов', count(9800), '+6% к прошлому периоду')}
+        ${kpiCard('Оборот по продуктам', money(1870000), '+10% к прошлому периоду')}
+        ${kpiCard('Выручка по продуктам', money(67600), '+8% к прошлому месяцу')}
+      </div>
+      <div class="grid-2">
+        ${chartCard('prdUsage','Использование продуктов', false, chartSwitch('prdUsage'))}
+        ${chartCard('prdRevenue','Выручка по продуктам', false, chartSwitch('prdRevenue'))}
+      </div>
+    </section>
+    <section class="section">
+      <div class="mini-grid">
+        ${miniProductCard('Карты','cards',[{label:'Активные карты',value:count(5320)},{label:'Выручка',value:money(18600)}],'prdMiniCards')}
+        ${miniProductCard('Криптоэквайринг','acquiring',[{label:'Оплаченные инвойсы',value:count(2180)},{label:'Мерчанты',value:count(148)}],'prdMiniAcq')}
+        ${miniProductCard('Обмен / торговля','exchange',[{label:'Объем',value:money(540000)},{label:'Выручка',value:money(15400)}],'prdMiniExchange')}
+        ${placeholderCard('Инвестиции - следующий этап')}
+      </div>
+    </section>`;
+  bindGoto();
+  bindChartSwitches();
+  drawProductsOverviewCharts();
+}
+
+function baseLayout(extra={}){ return Object.assign({paper_bgcolor:'#fff',plot_bgcolor:'#fff',font,margin:{l:48,r:18,t:14,b:34},showlegend:true,legend:{orientation:'h',y:-0.18},xaxis:{gridcolor:'#eef2f6'},yaxis:{gridcolor:'#eef2f6'}},extra) }
+function bar(id,x,y,color=colors.blue,horizontal=false){ Plotly.newPlot(id,[{type:'bar',x:horizontal?y:x,y:horizontal?x:y,orientation:horizontal?'h':'v',marker:{color,borderRadius:8}}],baseLayout(horizontal?{margin:{l:110,r:18,t:14,b:34}}:{}),plotCfg) }
+function donut(id,labels,values){ Plotly.newPlot(id,[{type:'pie',labels,values,hole:.58,textinfo:'label+percent',marker:{colors:[colors.blue,colors.green,colors.amber,colors.purple,colors.gray,colors.red]}}],baseLayout({margin:{l:10,r:10,t:10,b:10},showlegend:false}),plotCfg) }
+function breakdown(id,labels,values,key,color=colors.blue,horizontal=true){
+  const mode = state.modes[key] || 'bar';
+  if(mode==='donut') donut(id, labels, values);
+  else bar(id, labels, values, color, horizontal);
+}
+function lineMulti(id,series){ Plotly.newPlot(id,series.map(s=>({type:'scatter',mode:'lines+markers',name:s.name,x:months,y:s.y,line:{width:3,color:s.color}})),baseLayout(),plotCfg) }
+function scatterGeo(id,locs,vals){
+  Plotly.newPlot(id,[{
+    type:'choropleth',
+    locationmode:'ISO-3',
+    locations:locs.map(x=>x.code),
+    z:vals,
+    text:locs.map((l,i)=>`${l.name}: ${compact(vals[i])}`),
+    hovertemplate:'%{text}<extra></extra>',
+    colorscale:[[0,'#eff6ff'],[.35,'#bfdbfe'],[.7,'#60a5fa'],[1,'#2563eb']],
+    marker:{line:{color:'#ffffff',width:.6}},
+    showscale:false
+  }],{
+    paper_bgcolor:'#fff',
+    font,
+    margin:{l:0,r:0,t:0,b:0},
+    geo:{
+      scope:'world',
+      showframe:false,
+      showcoastlines:true,
+      coastlinecolor:'#e5e7eb',
+      showcountries:true,
+      countrycolor:'#eef2f6',
+      landcolor:'#f8fafc',
+      lakecolor:'#fff',
+      bgcolor:'#fff',
+      projection:{type:'natural earth'}
+    }
+  },plotCfg)
+}
+function drawFunnel(id,steps){
+  Plotly.newPlot(id,[{
+    type:'funnel',
+    y:steps.map(s=>s[0]),
+    x:steps.map(s=>Math.max(1,scaled(s[1]))),
+    textinfo:'value+percent previous',
+    marker:{color:[colors.blue,colors.purple,colors.amber,colors.green,colors.red,colors.gray]},
+    connector:{line:{color:'#e5e7eb',width:1}}
+  }],{
+    paper_bgcolor:'#fff',
+    plot_bgcolor:'#fff',
+    font:{family:'Inter, Arial, sans-serif', color:'#16181d', size:11},
+    margin:{l:92,r:10,t:10,b:10},
+    xaxis:{showgrid:false,visible:false},
+    yaxis:{showgrid:false}
+  },plotCfg)
+}
+function lineMini(id,vals,color){ Plotly.newPlot(id,[{type:'scatter',mode:'lines',x:months,y:vals,line:{width:3,color},fill:'tozeroy',fillcolor:color+'22'}],{paper_bgcolor:'#fff',plot_bgcolor:'#fff',font,margin:{l:20,r:10,t:8,b:20},xaxis:{showgrid:false,showticklabels:false},yaxis:{showgrid:false,showticklabels:false},showlegend:false},plotCfg) }
+
+function drawOverviewCharts(){
+  lineMulti('ovrMoney', [{name:'Оборот', y:[420,470,520,495,560,610,590,680].map(scaled), color:colors.blue},{name:'Выручка', y:[18,22,24,21,25,27,26,30].map(scaled), color:colors.green}]);
+  drawOverviewStructure('revenue');
+  document.querySelectorAll('[data-overview-structure]').forEach(btn=>btn.onclick=()=>{document.querySelectorAll('[data-overview-structure]').forEach(x=>x.classList.remove('active')); btn.classList.add('active'); drawOverviewStructure(btn.dataset.overviewStructure)});
+  lineMulti('ovrWL', [{name:'WL', y:[110,135,142,149,168,176,188].map(scaled), color:colors.blue}]);
+  bar('ovrB2B',['Partner One','Partner Two','Partner Three','Partner Four'], [160,130,98,74].map(scaled), colors.purple, true);
+  drawFunnel('ovrRiskFunnel',[['Регистрация',1240],['KYC начат',760],['Проверка',220],['Одобрено',610]]);
+  lineMulti('ovrFlows', [{name:'Фиат', y:[44,48,50,56,60,58,64,66].map(scaled), color:colors.amber},{name:'Крипто', y:[58,61,67,70,73,75,82,88].map(scaled), color:colors.blue}]);
+  lineMini('miniCards',[9,11,12,11,13,14,15,16],colors.blue);
+  lineMini('miniAcq',[5,6,6,7,8,8,9,10],colors.green);
+  lineMini('miniExchange',[7,8,8,9,10,11,10,12],colors.purple);
+}
+function drawOverviewStructure(mode){
+  const labels=['Карты','Эквайринг','Обмен','Фиат','Крипто'];
+  const vals = mode==='turnover' ? [620,410,540,360,690] : [18.6,12.1,15.4,8.3,13.2];
+  if(mode==='donut') donut('ovrProducts', labels, vals.map(scaled));
+  else bar('ovrProducts', labels, vals.map(scaled), mode==='revenue'?colors.green:colors.blue, true);
+}
+
+function drawFirstProductSankey(){
+  const v = (x)=>Math.max(1, scaled(x));
+  Plotly.newPlot('usersFirstProduct',[{
+    type:'sankey',
+    arrangement:'snap',
+    node:{
+      pad:18,
+      thickness:14,
+      line:{color:'#e5e7eb',width:.6},
+      label:['Новые пользователи','KYC одобрен','Без KYC','Криптооперации','Обмен','Карты','Криптоэквайринг','WL / B2B'],
+      color:['#98a2b3','#10b981','#f59e0b','#10b981','#3b82f6','#8b5cf6','#f59e0b','#94a3b8']
+    },
+    link:{
+      source:[0,0,1,1,1,1,2,2],
+      target:[1,2,3,4,5,6,4,7],
+      value:[v(72),v(28),v(30),v(22),v(14),v(6),v(20),v(8)],
+      color:[
+        'rgba(16,185,129,.18)','rgba(245,158,11,.18)',
+        'rgba(16,185,129,.20)','rgba(59,130,246,.18)','rgba(139,92,246,.18)','rgba(245,158,11,.18)',
+        'rgba(59,130,246,.12)','rgba(148,163,184,.16)'
+      ]
+    }
+  }],{
+    paper_bgcolor:'#fff',
+    font:{family:'Inter, Arial, sans-serif', color:'#16181d', size:11},
+    margin:{l:10,r:10,t:10,b:10}
+  },plotCfg);
+}
+
+function drawUsersCharts(){
+  const kyc = state.custom.kycStatus || 'all';
+  let funnel = [['Регистрация',1240],['Email подтвержден',980],['KYC начат',760],['KYC завершен',610]];
+  if(kyc==='pending') funnel = [['Регистрация',1240],['Email подтвержден',980],['KYC начат',760],['На проверке',220]];
+  if(kyc==='declined') funnel = [['Регистрация',1240],['Email подтвержден',980],['KYC начат',760],['Отклонено',150]];
+  if(kyc==='approved') funnel = [['Регистрация',1240],['Email подтвержден',980],['KYC начат',760],['Одобрено',610]];
+  drawFunnel('usersFunnel',funnel);
+  lineMulti('usersFirstOp',[{name:'Конверсия',y:[36,38,41,42,44,46,47,49].map(v=>v*customMultiplier()), color:colors.blue}]);
+  drawFirstProductSankey();
+  scatterGeo('usersGeo',[
+    {code:'RUS',name:'Russia'},
+    {code:'GBR',name:'UK'},
+    {code:'DEU',name:'Germany'},
+    {code:'POL',name:'Poland'},
+    {code:'ARE',name:'UAE'},
+    {code:'TUR',name:'Turkey'},
+    {code:'KAZ',name:'Kazakhstan'},
+    {code:'GEO',name:'Georgia'}
+  ], [2200,1800,1450,980,720,810,640,420].map(scaled));
+}
+function drawProductsOverviewCharts(){
+  breakdown('prdUsage',['Карты','Эквайринг','Обмен','Фиат','Крипто'], [5320,2180,4100,3600,5200].map(scaled),'prdUsage',colors.blue,false);
+  breakdown('prdRevenue',['Карты','Обмен','Крипто','Эквайринг','Фиат'], [18.6,15.4,13.2,12.1,8.3].map(scaled),'prdRevenue',colors.green,true);
+  lineMini('prdMiniCards',[9,11,12,11,13,14,15,16],colors.blue);
+  lineMini('prdMiniAcq',[5,6,6,7,8,8,9,10],colors.green);
+  lineMini('prdMiniExchange',[7,8,8,9,10,11,10,12],colors.purple);
+}
+function drawCardsCharts(){ breakdown('cardsStatuses',['Активные','Ожидают','Заморожены','Блок'], [5320,1210,760,430].map(scaled),'cardsStatuses',colors.blue,false); drawFunnel('cardsFunnel',[['Выпуск',8100],['Пополнение',6300],['1-я транзакция',5700],['Активна 30д',5320]]); lineMulti('cardsMoney',[{name:'Оборот',y:[52,58,61,59,66,71,74,79].map(scaled),color:colors.blue},{name:'Выручка',y:[1.7,1.8,2.1,2.0,2.2,2.3,2.4,2.6].map(scaled),color:colors.green}]); }
+function drawAcqCharts(){ drawFunnel('acqFunnel',[['Создано',3200],['Оплачено',2180],['Частично',280],['Истекло',740]]); breakdown('acqStatuses',['Оплачено','Частично','Ожидание','Истекло'],[2180,280,420,740].map(scaled),'acqStatuses',colors.green,false); lineMulti('acqMoney',[{name:'Объем',y:[31,34,38,41,44,49,51,56].map(scaled),color:colors.blue},{name:'Выручка',y:[1.1,1.3,1.4,1.5,1.6,1.7,1.8,2.0].map(scaled),color:colors.green}]); }
+function drawExchangeCharts(){ lineMulti('exchDyn',[{name:'Обмены',y:[110,118,121,127,130,139,145,154].map(scaled),color:colors.blue}]); breakdown('exchPairs',['BTC / USDT','ETH / USDT','USDT / EUR','TON / USDT','SOL / USDT'], [31,24,18,15,12].map(scaled),'exchPairs',colors.purple,true); lineMulti('exchMoney',[{name:'Оборот',y:[42,45,48,51,56,60,63,69].map(scaled),color:colors.blue},{name:'Выручка',y:[1.3,1.5,1.6,1.7,1.8,2.0,2.1,2.3].map(scaled),color:colors.green}]); }
+function drawWLCharts(){ breakdown('wlUsers',['WL Core','WL Alpha','WL Nova','WL One'], [7200,4800,3100,1900].map(scaled),'wlUsers',colors.blue,true); breakdown('wlTurn',['WL Core','WL Alpha','WL Nova','WL One'], [210,145,94,61].map(scaled),'wlTurn',colors.purple,true); bar('wlRev',['WL Core','WL Alpha','WL Nova','WL One'], [7.6,5.1,3.4,2.1].map(scaled), colors.green, true); }
+function drawB2BCharts(){ breakdown('b2bClients',['Partner One','Partner Two','Partner Three','Partner Four'], [2100,1650,1320,980].map(scaled),'b2bClients',colors.blue,true); breakdown('b2bTurn',['Partner One','Partner Two','Partner Three','Partner Four'], [98,76,58,48].map(scaled),'b2bTurn',colors.purple,true); lineMulti('b2bConv',[{name:'Конверсия',y:[28,29,30,31,31,33,34,35].map(v=>v*customMultiplier()),color:colors.green}]); }
+function drawKYCCharts(){ drawFunnel('kycFunnel',[['Старт',1240],['Документы',760],['Проверка',220],['Одобрено',610]]); breakdown('amlStruct',['Авто','Ручная','Блок'],[540,380,92].map(scaled),'amlStruct',colors.amber,false); bar('opsTypes',['Фиат','Крипто','KYC','Карты','Эквайринг'], [260,210,180,110,80].map(scaled), colors.blue, true) }
+function drawFiatCharts(){ lineMulti('fiatDep',[{name:'Пополнения',y:[24,26,29,31,34,33,36,38].map(scaled),color:colors.green}]); lineMulti('fiatWd',[{name:'Выводы',y:[16,17,19,20,22,23,24,26].map(scaled),color:colors.amber}]); lineMulti('fiatFlow',[{name:'Пополнения',y:[24,26,29,31,34,33,36,38].map(scaled),color:colors.green},{name:'Выводы',y:[16,17,19,20,22,23,24,26].map(scaled),color:colors.amber}]); }
+function drawCryptoCharts(){
+  lineMulti('cryptoDep',[{name:'Пополнения',y:[48,52,56,61,65,68,73,78].map(scaled),color:colors.blue}]);
+  lineMulti('cryptoWd',[{name:'Выводы',y:[31,34,37,39,41,44,47,51].map(scaled),color:colors.purple}]);
+  drawCryptoBreakdown('sunburst');
+  document.querySelectorAll('[data-crypto-view]').forEach(btn=>{
+    btn.onclick=()=>{
+      document.querySelectorAll('[data-crypto-view]').forEach(x=>x.classList.remove('active'));
+      btn.classList.add('active');
+      drawCryptoBreakdown(btn.dataset.cryptoView);
+    };
+  });
+}
+function drawCryptoBreakdown(mode){
+  if(mode==='curr'){
+    bar('cryptoCurr',['USDT','BTC','ETH','TON','SOL'],[62,16,12,7,3].map(scaled),colors.blue,true);
+    return;
+  }
+  if(mode==='network'){
+    bar('cryptoCurr',['TRON','Ethereum','TON','Solana','Bitcoin'],[48,22,14,9,7].map(scaled),colors.purple,true);
+    return;
+  }
+  drawCryptoSunburst();
+}
+function drawCryptoSunburst(){
+  const base = customMultiplier() * multPeriod[state.period] * multWL[state.wl] * multDate[state.date];
+  const vals = [100,62,38,34,14,8,6,22,8,5,3,28,6,10,4,8,6,16,6,5,3,5,3].map(v=>v*base);
+  Plotly.newPlot('cryptoCurr',[{
+    type:'sunburst',
+    ids:[
+      'root',
+      'dep','wd',
+      'd-tron','d-eth','d-ton','d-sol',
+      'w-tron','w-eth','w-ton','w-sol',
+      'd-tron-usdt','d-tron-trx','d-eth-usdc','d-eth-eth','d-ton-ton','d-sol-sol',
+      'w-tron-usdt','w-tron-trx','w-eth-usdt','w-eth-eth','w-ton-ton','w-sol-sol'
+    ],
+    labels:[
+      'Криптооперации',
+      'Пополнения','Выводы',
+      'TRON','Ethereum','TON','Solana',
+      'TRON','Ethereum','TON','Solana',
+      'USDT','TRX','USDC','ETH','TON','SOL',
+      'USDT','TRX','USDT','ETH','TON','SOL'
+    ],
+    parents:[
+      '',
+      'root','root',
+      'dep','dep','dep','dep',
+      'wd','wd','wd','wd',
+      'd-tron','d-tron','d-eth','d-eth','d-ton','d-sol',
+      'w-tron','w-tron','w-eth','w-eth','w-ton','w-sol'
+    ],
+    values: vals,
+    branchvalues:'total',
+    maxdepth:3,
+    insidetextorientation:'radial',
+    marker:{colors:[
+      '#f8fafc',
+      '#dbeafe','#ede9fe',
+      '#bfdbfe','#c7d2fe','#ddd6fe','#e9d5ff',
+      '#bfdbfe','#c7d2fe','#ddd6fe','#e9d5ff',
+      '#3b82f6','#60a5fa','#6366f1','#818cf8','#8b5cf6','#a78bfa',
+      '#3b82f6','#60a5fa','#6366f1','#818cf8','#8b5cf6','#a78bfa'
+    ],line:{color:'#fff',width:2}},
+    hovertemplate:'%{label}<br>%{value:.1f}<extra></extra>'
+  }],{
+    paper_bgcolor:'#fff',
+    plot_bgcolor:'#fff',
+    font:{family:'Inter, Arial, sans-serif', color:'#16181d', size:11},
+    margin:{l:0,r:0,t:0,b:0},
+    showlegend:false
+  },plotCfg);
+}
+
+function bindGoto(){ document.querySelectorAll('.goto').forEach(btn=>btn.onclick=()=>{state.page=btn.dataset.target; state.custom={}; syncNav(); renderPage()}) }
+function bindChartSwitches(){
+  document.querySelectorAll('[data-chart-switch]').forEach(btn=>{
+    btn.onclick=()=>{
+      const key=btn.dataset.chartSwitch;
+      state.modes[key]=btn.dataset.chartMode;
+      renderPage();
+    }
+  });
+}
+function renderPage(){
+  if(!pages[state.page]) state.page = 'overview';
+  document.getElementById('pageTitle').textContent = pages[state.page].title;
+  pages[state.page].render();
+}
+function syncNav(){
+  document.querySelectorAll('[data-page]').forEach(el=>el.classList.toggle('active', el.dataset.page===state.page));
+  document.querySelectorAll('[data-root-page]').forEach(el=>el.classList.toggle('active', state.page==='overview'));
+}
+
+const content = document.getElementById('content');
+const pageFilters = document.getElementById('pageFilters');
+
+Array.from(document.querySelectorAll('.sub-toggle')).forEach(btn=>{
+  btn.addEventListener('click',()=>{ const block=btn.parentElement; block.classList.toggle('open'); });
+});
+Array.from(document.querySelectorAll('.menu-toggle')).forEach(btn=>{
+  btn.addEventListener('click',()=>{ const block=btn.parentElement; block.classList.toggle('open'); if(btn.dataset.rootPage){ state.page=btn.dataset.rootPage; state.custom={}; syncNav(); renderPage(); } });
+});
+Array.from(document.querySelectorAll('[data-page]')).forEach(btn=>btn.addEventListener('click',()=>{ state.page=btn.dataset.page; state.custom={}; syncNav(); renderPage(); }));
+
+periodFilter.onchange=()=>{state.period=periodFilter.value; renderPage()};
+wlFilter.onchange=()=>{state.wl=wlFilter.value; renderPage()};
+dateFilter.onchange=()=>{state.date=dateFilter.value; renderPage()};
+
+syncNav();
+renderPage();
+</script>
+</body>
+</html>
